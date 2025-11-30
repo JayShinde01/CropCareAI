@@ -19,6 +19,15 @@ dependencies:
   shared_preferences: ^2.0.15
   audioplayers: ^6.5.1
   google_sign_in: ^6.0.0
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.0
+  file_picker: ^8.1.2
+  path_provider: ^2.0.15
+  archive: ^3.3.7
+  http: ^1.1.0
+  geolocator: ^11.0.0
+  flutter_map_location_marker: ^8.1.0
+
   
 
 dev_dependencies:

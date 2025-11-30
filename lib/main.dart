@@ -1,4 +1,5 @@
 // lib/main.dart
+import 'package:demo/screens/diagnose_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -10,6 +11,7 @@ import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/language_screen.dart';
+import 'screens/field_map_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -65,7 +67,9 @@ class AgrioDemoApp extends StatelessWidget {
       initialRoute: '/',
       // We keep a minimal routes map for convenience, but navigation goes through onGenerateRoute.
       routes: {
+        // '/': (_) => const DiagnoseScreen(),
         '/': (_) => const LanguageScreen(),
+        '/fieldmap': (_) => const FieldMapScreen(),
         '/login': (_) => const LoginScreen(),
         '/signup': (_) => const SignupScreen(),
       },
