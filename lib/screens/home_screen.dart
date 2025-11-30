@@ -1,9 +1,14 @@
 // lib/screens/home_screen.dart
 import 'dart:io';
+import 'package:demo/screens/ContactUs.dart';
+import 'package:demo/screens/CropCare.dart';
+import 'package:demo/screens/Notification.dart';
+import 'package:demo/screens/community_post_page.dart';
 import 'package:demo/screens/diagnose_screen.dart';
 import 'package:demo/screens/field_map_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -29,10 +34,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-List screens = [DiagnoseScreen(),FieldMapScreen(),DiagnoseScreen(),FieldMapScreen(),DiagnoseScreen(),FieldMapScreen(),];
+List screens = [DiagnoseScreen(),FieldMapScreen(),DiagnoseScreen(),CommunityPostPage(),FieldMapScreen(),Cropcare()];
   int bottomIndex = 0;
   final accent = const Color(0xFF74C043);
-  
+  int notificationCount=9;
 
   File? _lastPickedImage;
 
@@ -61,12 +66,69 @@ List screens = [DiagnoseScreen(),FieldMapScreen(),DiagnoseScreen(),FieldMapScree
             const Text('CropCareAI', style: TextStyle(fontWeight: FontWeight.w600)),
           ],
         ),
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 14),
-            child: Icon(Icons.people, color: Colors.white),
-          )
-        ],
+        actions: [
+  Padding(
+    padding: const EdgeInsets.only(right: 14),
+    child: Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Tappable notification icon
+        InkWell(
+          borderRadius: BorderRadius.circular(30),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => NotificationPage()),
+            );
+          },
+          child: const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Icon(
+              Icons.notifications_rounded,
+              color: Color.fromARGB(255, 255, 65, 65),
+              size: 32,
+            ),
+          ),
+        ),
+
+        // Notification count badge
+        Positioned(
+          right: 0,
+          top: 0,
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.red.shade700,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.red.shade300,
+                  blurRadius: 6,
+                  spreadRadius: 1,
+                )
+              ],
+            ),
+            constraints: const BoxConstraints(
+              minWidth: 15,
+              minHeight: 15,
+            ),
+            child: Center(
+              child: Text(
+                notificationCount > 9 ? "9+" : notificationCount.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        )
+      ],
+    ),
+  ),
+],
+
       ),
 
       body: screens[bottomIndex],
@@ -84,9 +146,9 @@ List screens = [DiagnoseScreen(),FieldMapScreen(),DiagnoseScreen(),FieldMapScree
           BottomNavigationBarItem(icon: Icon(Icons.chat), label: "Chat"),
           BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: "Schedule"),
           BottomNavigationBarItem(icon: Icon(Icons.camera), label: "Diagnose"),
-          BottomNavigationBarItem(icon: Icon(Icons.android), label: "Consult"),
+          BottomNavigationBarItem(icon: Icon(Icons.people_outline_sharp), label: "Community"),
           BottomNavigationBarItem(icon: Icon(Icons.navigation), label: "Map"),
-          BottomNavigationBarItem(icon: Icon(Icons.notifications), label: "Notifs"),
+          BottomNavigationBarItem(icon: Icon(Icons.eco_outlined), label: "info"),
         ],
       ),
     );
@@ -196,7 +258,11 @@ List screens = [DiagnoseScreen(),FieldMapScreen(),DiagnoseScreen(),FieldMapScree
       dense: true,
       leading: Icon(icon, color: Colors.white54),
       title: Text(label, style: const TextStyle(color: Colors.white70)),
-      onTap: () {},
+      onTap: () {
+        if(label == "Contact Us"){
+          Navigator.push(context, MaterialPageRoute(builder: (context) => ContactUsPage(),));
+        }
+      },
       horizontalTitleGap: 4,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
     );

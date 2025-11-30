@@ -193,11 +193,11 @@ class _LoginScreenState extends State<LoginScreen> {
     final accent = Colors.greenAccent.shade400;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Login"),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
+      // appBar: AppBar(
+      //   title: const Text("Login"),
+      //   backgroundColor: Colors.transparent,
+      //   elevation: 0,
+      // ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),

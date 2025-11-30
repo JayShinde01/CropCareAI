@@ -3,15 +3,17 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:archive/archive_io.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:archive/archive_io.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
-import 'package:file_picker/file_picker.dart';
-import 'package:geolocator/geolocator.dart';
 
 /// Field model
 class Field {
@@ -43,7 +45,6 @@ class FieldMapScreen extends StatefulWidget {
 
 class _FieldMapScreenState extends State<FieldMapScreen> {
   final MapController _mapController = MapController();
-
   final List<Field> _fields = [];
   bool _isAdding = false;
   final List<LatLng> _currentVertices = [];
@@ -51,13 +52,15 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
 
   // map fieldId -> file:// template path
   final Map<String, String> _localTileTemplates = {};
-  double _currentZoom = 16; // default
-
+  // double _currentZoom = 16; // default
 
   // Location tracking
   Position? _currentPosition;
   StreamSubscription<Position>? _positionStreamSub;
   bool _isFollowing = false;
+
+  // Download cancellation
+  bool _cancelDownload = false;
 
   @override
   void initState() {
@@ -81,13 +84,10 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
         LatLng(19.076983, 72.879655),
         LatLng(19.074983, 72.880655),
       ],
-      // color with alpha included directly
       color: const Color.fromRGBO(34, 197, 94, 0.45),
       history: ['Created on ${DateTime.now().subtract(const Duration(days: 3)).toLocal().toString().split('.')[0]}'],
     );
     _fields.add(demo);
-
-    // Zoom to demo field after frame renders
     WidgetsBinding.instance.addPostFrameCallback((_) => _zoomToField(demo));
   }
 
@@ -96,6 +96,7 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
     for (final f in _fields) {
       final tpl = await _computeLocalTemplateIfExists(f.id);
       if (tpl != null) {
+        if (!mounted) return;
         setState(() => _localTileTemplates[f.id] = tpl);
       }
     }
@@ -108,7 +109,6 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
     });
   }
 
-  // Map tap handler
   void _onMapTap(TapPosition tap, LatLng latlng) {
     if (!_isAdding) {
       final tapped = _findFieldAtTap(latlng);
@@ -120,7 +120,6 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
     setState(() => _currentVertices.add(latlng));
   }
 
-  // Point-in-polygon (ray-casting)
   Field? _findFieldAtTap(LatLng tap) {
     for (final field in _fields) {
       if (_pointInPolygon(tap, field.polygon)) return field;
@@ -133,13 +132,13 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
     if (n < 3) return false;
     var inside = false;
     for (int i = 0, j = n - 1; i < n; j = i++) {
-      final xi = poly[i].longitude;
-      final yi = poly[i].latitude;
-      final xj = poly[j].longitude;
-      final yj = poly[j].latitude;
+      final latI = poly[i].latitude;
+      final lngI = poly[i].longitude;
+      final latJ = poly[j].latitude;
+      final lngJ = poly[j].longitude;
 
-      final intersect = ((yi > point.latitude) != (yj > point.latitude)) &&
-          (point.longitude < (xj - xi) * (point.latitude - yi) / (yj - yi + 0.0) + xi);
+      final intersect = ((latI > point.latitude) != (latJ > point.latitude)) &&
+          (point.longitude < (lngJ - lngI) * (point.latitude - latI) / (latJ - latI) + lngI);
       if (intersect) inside = !inside;
     }
     return inside;
@@ -204,19 +203,82 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
+  // -----------------------------
+  // Upload / attach drone map (improved: compress + store as temp file)
+  // -----------------------------
   Future<void> _uploadDroneMap(Field field) async {
+    // request storage permission for mobile devices
+    if (!kIsWeb) {
+      final p = await Permission.storage.request();
+      if (!p.isGranted) {
+        _showSnack('Storage permission required to attach drone map.');
+        return;
+      }
+    }
+
     final result = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
     if (result == null || result.files.isEmpty) return;
     final picked = result.files.first;
-    final bytes = picked.bytes;
-    final path = picked.path;
-    setState(() {
-      if (bytes != null) field.droneImageBytes = bytes;
-      if (path != null && !kIsWeb) field.droneImageFile = File(path);
-      field.history.add('Drone image uploaded on ${DateTime.now().toLocal().toString().split('.')[0]}');
-    });
-    if (mounted) Navigator.pop(context); // close bottom sheet if open
-    _showSnack('Drone map attached to ${field.name}');
+
+    try {
+      Uint8List? bytes = picked.bytes;
+      String? path = picked.path;
+
+      // prefer compressing from file path where possible (more efficient)
+      if (!kIsWeb && path != null) {
+        // compress and write to temp file
+        final tmpDir = await getTemporaryDirectory();
+        final outPath = '${tmpDir.path}/${DateTime.now().millisecondsSinceEpoch}_drone.jpg';
+
+        final compressedBytes = await FlutterImageCompress.compressWithFile(
+          path,
+          minWidth: 1600,
+          minHeight: 900,
+          quality: 70,
+        );
+
+        if (compressedBytes != null) {
+          final outFile = File(outPath);
+          await outFile.writeAsBytes(compressedBytes, flush: true);
+          setState(() {
+            field.droneImageFile = outFile;
+            field.droneImageBytes = null; // keep file instead of memory bytes
+            field.history.add('Drone image attached (compressed) on ${DateTime.now().toLocal().toString().split('.')[0]}');
+          });
+        } else {
+          // fallback: if compress returns null, copy original path to temp
+          final outFile = File(outPath);
+          await outFile.writeAsBytes(await File(path).readAsBytes(), flush: true);
+          setState(() {
+            field.droneImageFile = outFile;
+            field.droneImageBytes = null;
+            field.history.add('Drone image attached (copied) on ${DateTime.now().toLocal().toString().split('.')[0]}');
+          });
+        }
+      } else {
+        // Web or no file path: compress from bytes if available
+        if (bytes != null) {
+          final compressedBytes = await FlutterImageCompress.compressWithList(
+            bytes,
+            minWidth: 1600,
+            minHeight: 900,
+            quality: 70,
+          );
+          setState(() {
+            field.droneImageBytes = Uint8List.fromList(compressedBytes);
+            field.history.add('Drone image attached (compressed) on ${DateTime.now().toLocal().toString().split('.')[0]}');
+          });
+        } else {
+          _showSnack('No image data available to attach');
+          return;
+        }
+      }
+
+      if (mounted) Navigator.pop(context);
+      _showSnack('Drone map attached to ${field.name}');
+    } catch (e) {
+      _showSnack('Failed to attach drone image: $e');
+    }
   }
 
   Future<void> _renameField(Field field) async {
@@ -273,43 +335,66 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
             Text('Vertices: ${field.polygon.length}'),
             const SizedBox(height: 8),
             Expanded(
-              child: ListView(children: [
-                if (field.droneImageBytes != null || (field.droneImageFile != null && !kIsWeb))
-                  ...[
-                    const Text('Drone Map', style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    _buildImagePreview(field),
-                    const SizedBox(height: 12),
-                  ],
-                const Text('Recent activity', style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                ...field.history.reversed.map((h) => ListTile(title: Text(h, style: const TextStyle(fontSize: 14)))).toList(),
-                const SizedBox(height: 10),
-                if (!kIsWeb)
-                  FutureBuilder<String?>(
-                    future: _computeLocalTemplateIfExists(field.id),
-                    builder: (context, snap) {
-                      final exists = snap.connectionState == ConnectionState.done && snap.data != null;
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (exists && !_localTileTemplates.containsKey(field.id)) setState(() => _localTileTemplates[field.id] = snap.data!);
-                        if (!exists && _localTileTemplates.containsKey(field.id)) setState(() => _localTileTemplates.remove(field.id));
-                      });
-                      return ListTile(
-                        leading: Icon(exists ? Icons.check_circle : Icons.cloud_download),
-                        title: Text(exists ? 'Offline tiles ready' : 'Offline tiles not downloaded'),
-                        subtitle: exists ? const Text('Tap map to view offline overlay') : const Text('Load tiles from device storage'),
-                        trailing: exists ? TextButton(onPressed: () => _deleteLocalTiles(field.id), child: const Text('Delete')) : null,
-                      );
-                    },
-                  ),
-                if (kIsWeb)
-                  const ListTile(
-                    leading: Icon(Icons.info),
-                    title: Text('Offline Tiles'),
-                    subtitle: Text('Not supported on web platform.'),
-                  ),
-              ]),
-            ),
+  child: ListView(
+    padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+    children: [
+      if (field.droneImageBytes != null || (field.droneImageFile != null && !kIsWeb)) ...[
+        const Text('Drone Map', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        _buildImagePreview(field),
+        const SizedBox(height: 12),
+      ],
+
+      const Text('Recent activity', style: TextStyle(fontWeight: FontWeight.bold)),
+      const SizedBox(height: 8),
+
+      // Spread the iterable directly (no .toList())
+      ...field.history.reversed.map(
+        (h) => ListTile(
+          title: Text(h, style: const TextStyle(fontSize: 14)),
+        ),
+      ),
+
+      const SizedBox(height: 10),
+
+      if (!kIsWeb)
+        FutureBuilder<String?>(
+          future: _computeLocalTemplateIfExists(field.id),
+          builder: (context, snap) {
+            final exists = snap.connectionState == ConnectionState.done && snap.data != null;
+
+            // update local cache once after build if needed
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              final hasLocal = _localTileTemplates.containsKey(field.id);
+              if (exists && !hasLocal) {
+                setState(() => _localTileTemplates[field.id] = snap.data!);
+              } else if (!exists && hasLocal) {
+                setState(() => _localTileTemplates.remove(field.id));
+              }
+            });
+
+            return ListTile(
+              leading: Icon(exists ? Icons.check_circle : Icons.cloud_download),
+              title: Text(exists ? 'Offline tiles ready' : 'Offline tiles not downloaded'),
+              subtitle: exists ? const Text('Tap map to view offline overlay') : const Text('Load tiles from device storage'),
+              trailing: exists
+                  ? TextButton(onPressed: () => _deleteLocalTiles(field.id), child: const Text('Delete'))
+                  : null,
+            );
+          },
+        ),
+
+      if (kIsWeb)
+        const ListTile(
+          leading: Icon(Icons.info),
+          title: Text('Offline Tiles'),
+          subtitle: Text('Not supported on web platform.'),
+        ),
+    ],
+  ),
+),
+
           ]),
         ),
       ),
@@ -328,9 +413,7 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Field History'),
-        content: SizedBox(
-            width: double.maxFinite,
-            child: ListView(children: field.history.reversed.map((h) => ListTile(title: Text(h, style: const TextStyle(fontSize: 14)))).toList())),
+        content: SizedBox(width: double.maxFinite, child: ListView(children: field.history.reversed.map((h) => ListTile(title: Text(h, style: const TextStyle(fontSize: 14)))).toList())),
         actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
       ),
     );
@@ -339,7 +422,6 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
   // -----------------------------
   // Offline tile helpers
   // -----------------------------
-
   Future<Directory> _getTilesFolderForField(String fieldId) async {
     if (kIsWeb) throw UnsupportedError('File system operations are not supported on web.');
     final docs = await getApplicationDocumentsDirectory();
@@ -347,24 +429,42 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
     if (!await dir.exists()) await dir.create(recursive: true);
     return dir;
   }
+Future<String?> _computeLocalTemplateIfExists(String fieldId) async {
+  if (kIsWeb) return null;
+  try {
+    final folder = await _getTilesFolderForField(fieldId);
+    bool hasTile = false;
 
-  Future<String?> _computeLocalTemplateIfExists(String fieldId) async {
-    if (kIsWeb) return null;
-    try {
-      final folder = await _getTilesFolderForField(fieldId);
-      final hasAny = await folder.list(recursive: true).any((e) => e is File);
-      if (!hasAny) return null;
-      return Uri.file('${folder.path}/{z}/{x}/{y}.png').toString();
-    } catch (_) {
-      return null;
+    await for (final e in folder.list(recursive: true)) {
+      if (e is File && e.path.endsWith('.png')) {
+
+        // FIX: use string interpolation instead of +
+        final rel = e.path.replaceFirst('${folder.path}/', '');
+
+        if (RegExp(r'^\d+/\d+/\d+\.png$').hasMatch(rel)) {
+          hasTile = true;
+          break;
+        }
+      }
     }
+
+    if (!hasTile) return null;
+
+    // file:/// prefix + z/x/y template
+    final prefix = Uri.file('${folder.path}/').toString();
+    return '$prefix{z}/{x}/{y}.png';
+
+  } catch (_) {
+    return null;
   }
+}
 
   Future<void> _deleteLocalTiles(String fieldId) async {
     if (kIsWeb) return;
     try {
       final folder = await _getTilesFolderForField(fieldId);
       if (await folder.exists()) await folder.delete(recursive: true);
+      if (!mounted) return;
       setState(() => _localTileTemplates.remove(fieldId));
       _showSnack('Deleted offline tiles for $fieldId');
     } catch (e) {
@@ -372,12 +472,19 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
     }
   }
 
-  /// Let user pick a ZIP from device storage and extract it into app tiles folder
   Future<void> _pickZipAndExtract(Field field) async {
     if (kIsWeb) {
       _showSnack('Pick from device not supported on Web in this demo.');
       return;
     }
+
+    // request storage permission
+    final p = await Permission.storage.request();
+    if (!p.isGranted) {
+      _showSnack('Storage permission required to load tiles.');
+      return;
+    }
+
     final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['zip'], withData: false);
     if (result == null || result.files.isEmpty) return;
     final picked = result.files.first;
@@ -387,11 +494,10 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
       return;
     }
 
-    // Extract
     try {
       await _extractZipFromPath(path, field.id);
       final tpl = await _computeLocalTemplateIfExists(field.id);
-      if (tpl != null) setState(() => _localTileTemplates[field.id] = tpl);
+      if (tpl != null && mounted) setState(() => _localTileTemplates[field.id] = tpl);
       _showSnack('Tiles loaded for ${field.name}');
     } catch (e) {
       _showSnack('Failed to extract tiles: $e');
@@ -401,6 +507,12 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
   Future<void> _extractZipFromPath(String zipPath, String fieldId) async {
     final zipFile = File(zipPath);
     if (!await zipFile.exists()) throw 'Zip file not found';
+    final fileSize = await zipFile.length();
+    const maxAllowed = 200 * 1024 * 1024; // 200MB
+    if (fileSize > maxAllowed) {
+      throw 'Zip file too large (${(fileSize / (1024 * 1024)).toStringAsFixed(1)} MB). Use a smaller tile package.';
+    }
+
     final bytes = await zipFile.readAsBytes();
     final archive = ZipDecoder().decodeBytes(bytes);
     final targetDir = await _getTilesFolderForField(fieldId);
@@ -419,50 +531,63 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
   }
 
   // -----------------------------
-  // Download-from-URL helper (kept if you want to extend)
+  // Download-from-URL helper (cancelable)
   // -----------------------------
   Future<void> _downloadAndExtractTiles(String url, String fieldId, {void Function(double)? onProgress}) async {
     if (kIsWeb) throw UnsupportedError('Not supported on web.');
+    _cancelDownload = false;
     final tmpDir = await getTemporaryDirectory();
     final tmpZip = File('${tmpDir.path}/tiles_$fieldId.zip');
 
     final client = http.Client();
-    final req = http.Request('GET', Uri.parse(url));
-    final streamed = await client.send(req);
-    final contentLength = streamed.contentLength ?? 0;
-    final sink = tmpZip.openWrite();
-    int received = 0;
-    await for (final chunk in streamed.stream) {
-      received += chunk.length;
-      sink.add(chunk);
-      if (contentLength > 0 && onProgress != null) onProgress(received / contentLength);
-    }
-    await sink.close();
-    client.close();
-
-    final bytes = await tmpZip.readAsBytes();
-    final archive = ZipDecoder().decodeBytes(bytes);
-    final targetDir = await _getTilesFolderForField(fieldId);
-    for (final file in archive) {
-      final filename = file.name;
-      if (file.isFile) {
-        final out = File('${targetDir.path}/$filename');
-        await out.parent.create(recursive: true);
-        await out.writeAsBytes(file.content as Uint8List);
-      } else {
-        final dir = Directory('${targetDir.path}/$filename');
-        if (!await dir.exists()) await dir.create(recursive: true);
+    try {
+      final req = http.Request('GET', Uri.parse(url));
+      final streamed = await client.send(req);
+      final contentLength = streamed.contentLength ?? 0;
+      final sink = tmpZip.openWrite();
+      int received = 0;
+      await for (final chunk in streamed.stream) {
+        if (_cancelDownload) {
+          await sink.close();
+          if (await tmpZip.exists()) await tmpZip.delete();
+          client.close();
+          _showSnack('Download cancelled');
+          return;
+        }
+        received += chunk.length;
+        sink.add(chunk);
+        if (contentLength > 0 && onProgress != null) onProgress(received / contentLength);
       }
+      await sink.close();
+      client.close();
+
+      final bytes = await tmpZip.readAsBytes();
+      final archive = ZipDecoder().decodeBytes(bytes);
+      final targetDir = await _getTilesFolderForField(fieldId);
+      for (final file in archive) {
+        final filename = file.name;
+        if (file.isFile) {
+          final out = File('${targetDir.path}/$filename');
+          await out.parent.create(recursive: true);
+          await out.writeAsBytes(file.content as Uint8List);
+        } else {
+          final dir = Directory('${targetDir.path}/$filename');
+          if (!await dir.exists()) await dir.create(recursive: true);
+        }
+      }
+      if (await tmpZip.exists()) await tmpZip.delete();
+      final tpl = await _computeLocalTemplateIfExists(fieldId);
+      if (tpl != null && mounted) setState(() => _localTileTemplates[fieldId] = tpl);
+    } finally {
+      client.close();
     }
-    if (await tmpZip.exists()) await tmpZip.delete();
-    final tpl = await _computeLocalTemplateIfExists(fieldId);
-    if (tpl != null) setState(() => _localTileTemplates[fieldId] = tpl);
   }
 
-  // -----------------------------
-  // Location helpers (geolocator)
-  // -----------------------------
+  void cancelDownload() {
+    _cancelDownload = true;
+  }
 
+ 
   Future<bool> _ensureLocationPermission() async {
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
@@ -534,25 +659,27 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
   }
 
   // -----------------------------
-  // Zoom to field helper (CameraFit)
+  // Zoom to field helper (uses fitCamera if available)
   // -----------------------------
   void _zoomToField(Field field) {
     if (field.polygon.isEmpty) return;
     final bounds = LatLngBounds.fromPoints(field.polygon);
-    final cameraFit = CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(60), maxZoom: 18);
-    final fitted = cameraFit.fit(_mapController.camera);
-    _mapController.move(fitted.center, fitted.zoom);
+    try {
+      _mapController.fitCamera(CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(60), maxZoom: 18));
+    } catch (_) {
+      // fallback
+      final center = bounds.center;
+      _mapController.move(center, 16.0);
+    }
   }
 
-  // -----------------------------
-  // Build UI
-  // -----------------------------
   Future<String?> _getAnyLocalTemplateForMap() async {
     if (kIsWeb) return null;
     for (final f in _fields) {
       if (_localTileTemplates.containsKey(f.id)) return _localTileTemplates[f.id];
       final tpl = await _computeLocalTemplateIfExists(f.id);
       if (tpl != null) {
+        if (!mounted) return null;
         WidgetsBinding.instance.addPostFrameCallback((_) => setState(() => _localTileTemplates[f.id] = tpl));
         return tpl;
       }
@@ -560,84 +687,85 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
     return null;
   }
 
+  // -----------------------------
+  // Build UI
+  // -----------------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar(
-      //   title: const Text('My Fields — Field Map'),
-      //   actions: [IconButton(onPressed: _showFieldList, icon: const Icon(Icons.format_list_bulleted))],
-      // ),
       body: Stack(children: [
         FutureBuilder<String?>(
           future: _getAnyLocalTemplateForMap(),
           builder: (context, snapshot) {
             final anyTemplate = snapshot.data;
             return FlutterMap(
-              mapController: _mapController,
-              options: MapOptions(
-                initialCenter: LatLng(19.075983, 72.877655),
-                initialZoom: 15,
-                onTap: _onMapTap,
-              ),
-              children: [
-                TileLayer(
-                  urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  subdomains: const ['a', 'b', 'c'],
-                  userAgentPackageName: 'com.example.field_map_app',
-                ),
-// Local overlay for selected field
-if (_selectedField != null && _localTileTemplates.containsKey(_selectedField!.id))
-  TileLayer(
-    urlTemplate: _localTileTemplates[_selectedField!.id]!,
-  )
-// General local overlay if no field selected
-else if (_selectedField == null && anyTemplate != null)
-  Opacity(
-    opacity: 0.95,
-    child: TileLayer(
-      urlTemplate: anyTemplate!,
-    ),
+  mapController: _mapController,
+  options: MapOptions(
+    initialCenter: LatLng(19.075983, 72.877655),
+    initialZoom: 15,
+    onTap: _onMapTap,
   ),
+  children: [
+    // Base OSM tiles
+     TileLayer(
+      urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      subdomains: ['a', 'b', 'c'],
+      userAgentPackageName: 'com.example.field_map_app',
+    ),
 
-                // Polygons
-                PolygonLayer(
-                  polygons: [
-                    ..._fields.map((f) => Polygon(
-                          points: f.polygon,
-                          // Keep color as stored (already contains alpha)
-                          color: f.color,
-                          borderColor: const Color.fromRGBO(0, 0, 0, 0.35),
-                          borderStrokeWidth: 2,
-                          isFilled: true,
-                        )),
-                    if (_isAdding && _currentVertices.isNotEmpty)
-                      Polygon(
-                        points: _currentVertices,
-                        color: const Color.fromRGBO(250, 204, 21, 0.35),
-                        borderColor: const Color.fromRGBO(250, 204, 21, 0.9),
-                        borderStrokeWidth: 2,
-                        isFilled: true,
-                      ),
-                  ],
-                  polygonCulling: true,
-                ),
+    // Local offline overlay: prefer selected field template, otherwise any available template
+    if (_selectedField != null && _localTileTemplates.containsKey(_selectedField!.id))
+      TileLayer(urlTemplate: _localTileTemplates[_selectedField!.id]!)
+    else
+      if (anyTemplate != null)
+        Opacity(opacity: 0.95, child: TileLayer(urlTemplate: anyTemplate)),
 
-                // Vertex markers (when drawing)
-                if (_isAdding)
-                  MarkerLayer(
-                    markers: _currentVertices
-                        .map((pt) => Marker(
-  point: pt,
-  width: 30,
-  height: 30,
-  child: const Icon(Icons.location_on, size: 30),
+    // Field polygons
+    PolygonLayer(
+      polygons: [
+        // map fields to Polygon widgets (Iterable spread is fine here)
+        ..._fields.map((f) => Polygon(
+              points: f.polygon,
+              color: f.color,
+              borderColor: const Color.fromRGBO(0, 0, 0, 0.35),
+              borderStrokeWidth: 2,
+              isFilled: true,
+            )),
+        // Temporary polygon while drawing a new field
+        if (_isAdding && _currentVertices.isNotEmpty)
+          Polygon(
+            points: _currentVertices,
+            color: const Color.fromRGBO(250, 204, 21, 0.35),
+            borderColor: const Color.fromRGBO(250, 204, 21, 0.9),
+            borderStrokeWidth: 2,
+            isFilled: true,
+          ),
+      ],
+      polygonCulling: true,
+    ),
+
+    // Vertex markers shown during drawing (MarkerLayer expects a List<Marker>)
+    if (_isAdding)
+      MarkerLayer(
+  markers: _currentVertices
+      .map(
+        (pt) => Marker(
+          point: pt,
+          width: 30,
+          height: 30,
+          child: const Icon(
+            Icons.location_on,
+            size: 30,
+            color: Colors.orange,
+          ),
+        ),
+      )
+      .toList(),
 )
-)
-                        .toList(),
-                  ),
+,
 
-                // User location marker (on top)
-if (_currentPosition != null)
+    // User location marker
+   if (_currentPosition != null)
   MarkerLayer(
     markers: [
       Marker(
@@ -647,8 +775,6 @@ if (_currentPosition != null)
         ),
         width: 40,
         height: 40,
-
-        // ✔ Your version requires THIS:
         child: Icon(
           _isFollowing ? Icons.my_location : Icons.location_on,
           size: 36,
@@ -658,8 +784,9 @@ if (_currentPosition != null)
     ],
   ),
 
-              ],
-            );
+  ],
+);
+
           },
         ),
 
@@ -684,12 +811,7 @@ if (_currentPosition != null)
           bottom: 120,
           child: Column(
             children: [
-              FloatingActionButton(
-                heroTag: 'center_btn',
-                mini: true,
-                onPressed: () => _centerOnUserOnce(),
-                child: const Icon(Icons.my_location),
-              ),
+              FloatingActionButton(heroTag: 'center_btn', mini: true, onPressed: () => _centerOnUserOnce(), child: const Icon(Icons.my_location)),
               const SizedBox(height: 10),
               FloatingActionButton(
                 heroTag: 'follow_btn',

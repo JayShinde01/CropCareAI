@@ -173,6 +173,26 @@ class AuthService {
       "timestamp": FieldValue.serverTimestamp(),
     });
   }
+  //-----------------------------------------------------------------------------------------
+  Future<void> createCommunityPost({
+  required String imageUrl,
+  required String userId,
+  required String category,
+  required String title,
+  required String description,
+}) async {
+  await FirebaseFirestore.instance.collection("community_posts").add({
+    "userId": userId,
+    "imageUrl": imageUrl,
+    "category": category,
+    "title": title,
+    "description": description,
+    "likes": 0,
+    "savedBy": [],
+    "timestamp": FieldValue.serverTimestamp(),
+  });
+}
+
 
   // ---------------------------------------------------------
   // SIGN OUT
