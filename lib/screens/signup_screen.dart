@@ -515,7 +515,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                   child: OutlinedButton.icon(
                                     onPressed: _loading ? null : _signupWithGoogle,
                                     icon: Image.asset(
-                                      'assets/images/google_logo.png',
+                                      'assets/images/google_logo.jpg',
                                       width: 20,
                                       height: 20,
                                       errorBuilder: (_, __, ___) => Icon(Icons.public, color: colorScheme.primary),

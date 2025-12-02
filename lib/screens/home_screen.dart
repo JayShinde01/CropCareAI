@@ -20,11 +20,24 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Palette (single source of truth)
+  // Palette
   static const Color primaryGreen = Color(0xFF2E8B3A);
   static const Color lightGreen = Color(0xFF74C043);
   static const Color offWhite = Color(0xFFF4F9F4);
-  static const Color darkBg = Color(0xFF0E0E0E);
+
+  // Navigation
+  final List<Widget> _screens = const [
+    DiagnoseScreen(),
+    MarketplacePage(),
+    DiagnoseScreen(),
+    CommunityPostPage(),
+    FieldMapScreen(),
+    Cropcare(),
+  ];
+
+  int _selectedIndex = 0;
+  int notificationCount = 9;
+  File? _lastPickedImage;
 
   @override
   void initState() {
@@ -40,143 +53,176 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Keep your screens (you can reorder / replace as needed)
-  final List<Widget> screens = const [
-    DiagnoseScreen(),
-    MarketplacePage(),
-    DiagnoseScreen(),
-    CommunityPostPage(),
-    FieldMapScreen(),
-    Cropcare(),
-  ];
-
-  int bottomIndex = 0;
-  int notificationCount = 9;
-
-  File? _lastPickedImage;
+  void _onNavSelected(int index) {
+    setState(() => _selectedIndex = index);
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Responsive sizing helpers
-    final width = MediaQuery.of(context).size.width;
-    final isWide = width > 720;
+    final mq = MediaQuery.of(context);
+    final width = mq.size.width;
+    final height = mq.size.height;
+
+    // breakpoints
+    final isMobile = width < 600;
+    final isTablet = width >= 600 && width < 1024;
+    final isDesktop = width >= 1024;
+
+    // sizing
+    final toolbarHeight = isMobile ? 56.0 : (isTablet ? 64.0 : 72.0);
+    final iconSize = isMobile ? 20.0 : (isTablet ? 22.0 : 24.0);
+    final avatarSize = isMobile ? 36.0 : (isTablet ? 42.0 : 48.0);
+    final titleFont = isMobile ? 18.0 : (isTablet ? 20.0 : 22.0);
 
     return Scaffold(
       backgroundColor: offWhite,
+      drawer: _buildAppDrawer(context, isDesktop: isDesktop),
 
-      // Drawer
-      drawer: _buildAppDrawer(context),
-
-      appBar: AppBar(
-  automaticallyImplyLeading: true,
-  backgroundColor: primaryGreen,
-  elevation: 2,
-  centerTitle: false,
-
-  title: Row(
-    children: [
-      Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08), 
-              blurRadius: 4
-            )
-          ],
-        ),
-        child: const Icon(Icons.eco, color: primaryGreen, size: 20),
-      ),
-      const SizedBox(width: 12),
-      const Text(
-        'CropCareAI', 
-        style: TextStyle(fontWeight: FontWeight.w700),
-      ),
-    ],
-  ),
-
-  actions: [
-    // 🌙 Theme Toggle Button
-    const ThemeToggleButton(),
-
-    // ⭐ Schedule Button
-    IconButton(
-      tooltip: "Schedule",
-      icon: const Icon(Icons.event_note_outlined, color: Colors.white),
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const ScheduleScreen()),
-        );
-      },
-    ),
-
-    // 🔔 Notifications
-    Padding(
-      padding: const EdgeInsets.only(right: 12),
-      child: _notificationButton(),
-    ),
-  ],
-),
-
-
-
-      // --------------------------
-      // KEY CHANGE: Body occupies the full remaining area (no Card/padding).
-      // Use IndexedStack so each screen keeps its state while switching tabs.
-      // --------------------------
-      body: IndexedStack(
-        index: bottomIndex,
-        children: screens.map((w) {
-          // Wrap each screen in a Container to ensure full size and background control
-          return SizedBox.expand(
-            child: Container(
-              color: Colors.white, // background for each screen — change if needed
-              child: w,
-            ),
-          );
-        }).toList(),
-      ),
-
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Colors.grey.shade200, width: 0.6)),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)],
-        ),
+      // Responsive AppBar
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(toolbarHeight),
         child: SafeArea(
-          top: false, // keep only bottom safe area for nav bar
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6.0),
-            child: BottomNavigationBar(
-              type: BottomNavigationBarType.fixed,
-              backgroundColor: Colors.white,
-              selectedItemColor: primaryGreen,
-              unselectedItemColor: Colors.black54,
-              showUnselectedLabels: true,
-              currentIndex: bottomIndex,
-              onTap: (index) => setState(() => bottomIndex = index),
-             items: const [
-  BottomNavigationBarItem(icon: Icon(Icons.chat_outlined), label: "Chat"),
-  BottomNavigationBarItem(icon: Icon(Icons.storefront), label: "Market"),
-  BottomNavigationBarItem(icon: Icon(Icons.biotech), label: "Diagnose"),
-  BottomNavigationBarItem(icon: Icon(Icons.groups_outlined), label: "Community"),
-  BottomNavigationBarItem(icon: Icon(Icons.map_outlined), label: "Map"),
-  BottomNavigationBarItem(icon: Icon(Icons.info_outline), label: "Info"),
-],
+          top: true,
+          child: AppBar(
+            automaticallyImplyLeading: true,
+            backgroundColor: primaryGreen,
+            elevation: 2,
+            centerTitle: false,
+            toolbarHeight: toolbarHeight,
+            titleSpacing: 12,
+            title: Row(
+              children: [
+                Container(
+                  width: avatarSize,
+                  height: avatarSize,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 4),
+                    ],
+                  ),
+                  child: Icon(Icons.eco, color: primaryGreen, size: iconSize),
+                ),
 
+                SizedBox(width: isMobile ? 5 : 7),
+
+                Flexible(
+                  child: Text(
+                    'CropCareAI',
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: titleFont),
+                  ),
+                ),
+              ],
             ),
+            actions: [
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4.0),
+                child: ThemeToggleButton(),
+              ),
+
+              IconButton(
+                tooltip: 'Schedule',
+                icon: Icon(Icons.event_note_outlined, color: Colors.white, size: iconSize + 2),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ScheduleScreen())),
+              ),
+
+              Padding(
+                padding: EdgeInsets.only(right: isMobile ? 4 : 8),
+                child: _notificationButton(isMobile: isMobile, iconSize: iconSize),
+              ),
+            ],
           ),
         ),
       ),
+
+      // Body: Adaptive layout
+      body: Row(
+        children: [
+          // On large screens show a NavigationRail instead of BottomNavigationBar
+          if (isDesktop) ...[
+            NavigationRail(
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: _onNavSelected,
+              extended: width > 1400,
+              leading: Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Column(
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                      child: Icon(Icons.eco, color: primaryGreen),
+                    ),
+                  ],
+                ),
+              ),
+              labelType: NavigationRailLabelType.all,
+              minWidth: 72,
+              destinations: const [
+                NavigationRailDestination(icon: Icon(Icons.chat_outlined), label: Text('Chat')),
+                NavigationRailDestination(icon: Icon(Icons.storefront), label: Text('Market')),
+                NavigationRailDestination(icon: Icon(Icons.biotech), label: Text('Diagnose')),
+                NavigationRailDestination(icon: Icon(Icons.groups_outlined), label: Text('Community')),
+                NavigationRailDestination(icon: Icon(Icons.map_outlined), label: Text('Map')),
+                NavigationRailDestination(icon: Icon(Icons.info_outline), label: Text('Info')),
+              ],
+            ),
+            const VerticalDivider(width: 1, thickness: 1, color: Color(0xFFE6E6E6)),
+          ],
+
+          // Main content area
+          Expanded(
+            child: IndexedStack(
+              index: _selectedIndex,
+              children: _screens.map((w) => SafeArea(top: false, bottom: false, child: w)).toList(),
+            ),
+          ),
+        ],
+      ),
+
+      // Bottom navigation for mobile & tablet (desktop uses rail)
+      bottomNavigationBar: isDesktop
+          ? null
+          : Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(top: BorderSide(color: Colors.grey.shade200, width: 0.6)),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)],
+              ),
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6.0),
+                  child: BottomNavigationBar(
+                    type: BottomNavigationBarType.fixed,
+                    backgroundColor: Colors.white,
+                    selectedItemColor: primaryGreen,
+                    unselectedItemColor: Colors.black54,
+                    showUnselectedLabels: true,
+                    currentIndex: _selectedIndex,
+                    onTap: _onNavSelected,
+                    items: const [
+                      BottomNavigationBarItem(icon: Icon(Icons.chat_outlined), label: 'Chat'),
+                      BottomNavigationBarItem(icon: Icon(Icons.storefront), label: 'Market'),
+                      BottomNavigationBarItem(icon: Icon(Icons.biotech), label: 'Diagnose'),
+                      BottomNavigationBarItem(icon: Icon(Icons.groups_outlined), label: 'Community'),
+                      BottomNavigationBarItem(icon: Icon(Icons.map_outlined), label: 'Map'),
+                      BottomNavigationBarItem(icon: Icon(Icons.info_outline), label: 'Info'),
+                    ],
+                  ),
+                ),
+              ),
+            ),
     );
   }
 
-  // ---------------- Notification button with badge ----------------
-  Widget _notificationButton() {
+  // Notification button with badge
+  Widget _notificationButton({required bool isMobile, required double iconSize}) {
     return Semantics(
       label: 'Notifications',
       button: true,
@@ -184,10 +230,8 @@ class _HomeScreenState extends State<HomeScreen> {
         clipBehavior: Clip.none,
         children: [
           IconButton(
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => NotificationPage()));
-            },
-            icon: const Icon(Icons.notifications_none, size: 28),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => NotificationPage())),
+            icon: Icon(Icons.notifications_none, size: 28),
             color: Colors.white,
             tooltip: 'Notifications',
           ),
@@ -215,18 +259,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ---------------- Drawer ----------------
-  Widget _buildAppDrawer(BuildContext context) {
+  // Drawer builder (responsive width)
+  Widget _buildAppDrawer(BuildContext context, {required bool isDesktop}) {
     final user = FirebaseAuth.instance.currentUser;
     final photoUrl = user?.photoURL;
 
     return Drawer(
-      width: 300,
+      width: isDesktop ? 320 : 300,
       child: Container(
         color: const Color(0xFFF7FBF7),
         child: Column(
           children: [
-            // Header with gradient and profile
             Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(16, 36, 16, 18),
@@ -238,7 +281,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   GestureDetector(
                     onTap: () {
-                      // open profile
                       Navigator.pop(context);
                       Navigator.pushNamed(context, '/profile');
                     },
@@ -263,8 +305,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(user?.displayName ?? 'Farmer',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+                        Text(user?.displayName ?? 'Farmer', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
                         const SizedBox(height: 6),
                         Text(user?.email ?? '', style: const TextStyle(color: Colors.white70, fontSize: 12)),
                       ],
@@ -275,8 +316,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
 
             const SizedBox(height: 10),
-
-            // Sections (grouped)
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(vertical: 6),
@@ -288,10 +327,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   _drawerTile(icon: Icons.forum, label: 'Community', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CommunityPostPage()))),
                   _drawerTile(icon: Icons.notifications, label: 'Notifications', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationPage()))),
                   const Divider(),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8),
-                    child: Text('Useful', style: TextStyle(color: const Color.fromARGB(255, 0, 0, 0), fontWeight: FontWeight.w700)),
-                  ),
+                  Padding(padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8), child: Text('Useful', style: TextStyle(color: const Color.fromARGB(255, 0, 0, 0), fontWeight: FontWeight.w700))),
                   _drawerTile(icon: Icons.help_outline, label: 'Tutorials', onTap: () {}),
                   _drawerTile(icon: Icons.card_giftcard, label: 'Rewards', onTap: () {}),
                   _drawerTile(icon: Icons.attach_money, label: 'Plans & Pricing', onTap: () {}),
@@ -301,7 +337,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // Footer
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
               child: Column(
@@ -332,11 +367,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Helper to create drawer entries
   Widget _drawerTile({required IconData icon, required String label, required VoidCallback onTap}) {
     return ListTile(
       leading: Icon(icon, color: primaryGreen),
-      title: Text(label, style:  TextStyle(color: const Color.fromARGB(255, 51, 74, 51), fontWeight: FontWeight.w600)),
+      title: Text(label, style: const TextStyle(color: Color.fromARGB(255, 51, 74, 51), fontWeight: FontWeight.w600)),
       onTap: onTap,
       horizontalTitleGap: 6,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16),

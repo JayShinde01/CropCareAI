@@ -1,8 +1,14 @@
 // lib/services/auth_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 
+/// AuthService
+/// - Email sign-up / login
+/// - Google sign-in (web: signInWithPopup, mobile: google_sign_in plugin)
+/// - Ensures a Firestore `users` document exists and merges data
+/// - Utility methods for saving images / community posts
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -16,10 +22,8 @@ class AuthService {
     required String password,
     String? phone,
   }) async {
-    UserCredential cred;
-
     try {
-      cred = await _auth.createUserWithEmailAndPassword(
+      final cred = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -27,27 +31,30 @@ class AuthService {
       final user = cred.user;
       if (user == null) {
         throw FirebaseAuthException(
-            code: 'user-null', message: 'User creation returned null');
+          code: 'user-null',
+          message: 'User creation returned null',
+        );
       }
 
+      // Update display name and create Firestore user doc
       try {
-        // Update display name
         await user.updateDisplayName(name);
         await user.reload();
 
-        // Create Firestore user document
         await _createUserDoc(user, phone: phone);
 
-        // Send email verification
+        // Send email verification if not verified
         try {
           if (!user.emailVerified) {
             await user.sendEmailVerification();
           }
-        } catch (_) {}
+        } catch (_) {
+          // ignore sendEmailVerification failures
+        }
 
         return cred;
       } catch (inner) {
-        // Rollback auth user if Firestore fails
+        // Rollback: delete auth user if Firestore write failed
         try {
           final createdUser = _auth.currentUser;
           if (createdUser != null && createdUser.uid == user.uid) {
@@ -61,8 +68,7 @@ class AuthService {
     } on FirebaseAuthException {
       rethrow;
     } catch (e) {
-      throw FirebaseAuthException(
-          code: 'unknown', message: e.toString());
+      throw FirebaseAuthException(code: 'unknown', message: e.toString());
     }
   }
 
@@ -82,36 +88,59 @@ class AuthService {
   }
 
   // ---------------------------------------------------------
-  // GOOGLE SIGN-IN
+  // GOOGLE SIGN-IN (platform-aware)
   // ---------------------------------------------------------
+  /// On Web: uses FirebaseAuth.signInWithPopup(provider)
+  /// On Mobile/Desktop: uses google_sign_in plugin -> signIn -> signInWithCredential
   Future<UserCredential?> signInWithGoogle() async {
     try {
-      final googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) return null;
+      if (kIsWeb) {
+        // Web flow (Firebase popup) — more reliable for web
+        final provider = GoogleAuthProvider();
+        provider.setCustomParameters({'prompt': 'select_account'});
+        final userCred = await _auth.signInWithPopup(provider);
 
-      final googleAuth = await googleUser.authentication;
+        final user = userCred.user;
+        if (user != null) {
+          await ensureUserDoc(user, extra: {
+            'provider': 'google',
+            'name': user.displayName,
+            'email': user.email,
+            'photoURL': user.photoURL,
+          });
+        }
 
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
+        return userCred;
+      } else {
+        // Mobile / Desktop flow using google_sign_in plugin
+        final googleSignIn = GoogleSignIn();
+        final googleUser = await googleSignIn.signIn();
+        if (googleUser == null) return null;
 
-      final userCred = await _auth.signInWithCredential(credential);
+        final googleAuth = await googleUser.authentication;
 
-      final user = userCred.user;
-      if (user != null) {
-        await ensureUserDoc(user, extra: {
-          'provider': 'google',
-          'name': user.displayName,
-          'email': user.email,
-          'photoURL': user.photoURL,
-        });
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        final userCred = await _auth.signInWithCredential(credential);
+        final user = userCred.user;
+        if (user != null) {
+          await ensureUserDoc(user, extra: {
+            'provider': 'google',
+            'name': user.displayName,
+            'email': user.email,
+            'photoURL': user.photoURL,
+          });
+        }
+        return userCred;
       }
-
-      return userCred;
+    } on FirebaseAuthException {
+      rethrow;
     } catch (e) {
-      throw FirebaseAuthException(
-          code: 'google-signin-failed', message: e.toString());
+      // Wrap any other exception so caller gets a FirebaseAuthException-like error
+      throw FirebaseAuthException(code: 'google-signin-failed', message: e.toString());
     }
   }
 
@@ -127,9 +156,7 @@ class AuthService {
       'email': user.email,
       'phone': user.phoneNumber,
       'photoURL': user.photoURL,
-      'provider': user.providerData.isNotEmpty
-          ? user.providerData[0].providerId
-          : null,
+      'provider': user.providerData.isNotEmpty ? user.providerData[0].providerId : null,
       'createdAt': FieldValue.serverTimestamp(),
       'lastSeen': FieldValue.serverTimestamp(),
     };
@@ -140,7 +167,7 @@ class AuthService {
   }
 
   // ---------------------------------------------------------
-  // CREATE USER DOCUMENT
+  // CREATE USER DOCUMENT (used for email signup)
   // ---------------------------------------------------------
   Future<void> _createUserDoc(User user, {String? phone}) async {
     final docRef = _db.collection('users').doc(user.uid);
@@ -173,31 +200,50 @@ class AuthService {
       "timestamp": FieldValue.serverTimestamp(),
     });
   }
-  //-----------------------------------------------------------------------------------------
-  Future<void> createCommunityPost({
-  required String imageUrl,
-  required String userId,
-  required String category,
-  required String title,
-  required String description,
-}) async {
-  await FirebaseFirestore.instance.collection("community_posts").add({
-    "userId": userId,
-    "imageUrl": imageUrl,
-    "category": category,
-    "title": title,
-    "description": description,
-    "likes": 0,
-    "savedBy": [],
-    "timestamp": FieldValue.serverTimestamp(),
-  });
-}
 
+  // ---------------------------------------------------------
+  // CREATE COMMUNITY POST
+  // ---------------------------------------------------------
+  Future<void> createCommunityPost({
+    required String imageUrl,
+    required String userId,
+    required String category,
+    required String title,
+    required String description,
+  }) async {
+    await _db.collection("community_posts").add({
+      "userId": userId,
+      "imageUrl": imageUrl,
+      "category": category,
+      "title": title,
+      "description": description,
+      "likes": 0,
+      "likedBy": [], // keep consistent with your UI fields
+      "savedBy": [],
+      "timestamp": FieldValue.serverTimestamp(),
+    });
+  }
 
   // ---------------------------------------------------------
   // SIGN OUT
   // ---------------------------------------------------------
-  Future<void> signOut() async => await _auth.signOut();
+  Future<void> signOut() async {
+    try {
+      // If not web, sign out from google_sign_in plugin too
+      if (!kIsWeb) {
+        try {
+          final googleSignIn = GoogleSignIn();
+          await googleSignIn.signOut();
+        } catch (_) {
+          // ignore google_sign_in sign out errors
+        }
+      }
+      await _auth.signOut();
+    } catch (e) {
+      // bubble up as FirebaseAuthException for consistency
+      throw FirebaseAuthException(code: 'signout-failed', message: e.toString());
+    }
+  }
 
   // ---------------------------------------------------------
   // CURRENT USER

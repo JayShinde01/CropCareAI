@@ -1,9 +1,11 @@
-// lib/screens/diagnose_screen.dart
+// lib/screens/diagnose_screen.dart (Final clean version with Web Image Fix)
 
 import 'dart:io';
+import 'package:flutter/foundation.dart'; // Required for kIsWeb and Uint8List
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart'; // Required for web file picking
 
 import '../services/cloudinary_service.dart';
 import '../services/auth_service.dart';
@@ -17,7 +19,12 @@ class DiagnoseScreen extends StatefulWidget {
 
 class _DiagnoseScreenState extends State<DiagnoseScreen> {
   final ImagePicker _picker = ImagePicker();
-  File? _lastPickedImage;
+  
+  // State variables for cross-platform image storage
+  File? _lastPickedFile; 
+  Uint8List? _lastPickedBytes; // For Web preview and upload
+  String? _lastPickedFileName; 
+  
   bool _isUploading = false;
 
   static const double _cardRadius = 18.0;
@@ -28,25 +35,56 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
     // Assuming checkLoggedIn is handled by the Home Screen shell
   }
 
-  // NOTE: _checkLoggedIn, _pickImage, _startUploadProcess remain UNCHANGED
-  // as their logic is correct.
-
   // ---------------- IMAGE PICK + CLOUDINARY UPLOAD ----------------
 
   Future<void> _pickImage(ImageSource source) async {
     if (_isUploading) return;
-    try {
-      final XFile? xfile = await _picker.pickImage(
-        source: source,
-        imageQuality: 80,
-        maxWidth: 1200,
-      );
-      if (xfile == null) return;
-      final file = File(xfile.path);
-      setState(() => _lastPickedImage = file);
+    
+    // Reset previous states
+    setState(() {
+      _lastPickedFile = null;
+      _lastPickedBytes = null;
+      _lastPickedFileName = null;
+    });
 
+    try {
+      if (kIsWeb) {
+        // --- WEB HANDLING: Get raw bytes via FilePicker ---
+        final result = await FilePicker.platform.pickFiles(
+          type: FileType.image,
+          allowMultiple: false,
+          withData: true, 
+        );
+        if (result == null || result.files.single.bytes == null) return;
+        
+        final file = result.files.single;
+        
+        setState(() {
+          _lastPickedBytes = file.bytes;
+          _lastPickedFileName = file.name;
+        });
+
+      } else {
+        // --- MOBILE/DESKTOP HANDLING: Get File path via ImagePicker ---
+        final XFile? xfile = await _picker.pickImage(
+          source: source,
+          imageQuality: 80,
+          maxWidth: 1200,
+        );
+        if (xfile == null) return;
+        
+        setState(() {
+          _lastPickedFile = File(xfile.path);
+          _lastPickedFileName = xfile.name;
+        });
+      }
+
+      // If either file or bytes were successfully set, show confirmation
       if (!mounted) return;
-      _showUploadConfirmationDialog(file);
+      if (_lastPickedFile != null || _lastPickedBytes != null) {
+        _showUploadConfirmationDialog();
+      }
+
     } catch (e, st) {
       debugPrint('Image pick error: $e\n$st');
       if (!mounted) return;
@@ -59,10 +97,21 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
   }
 
   // ---------- Confirmation dialog (Theme-Compliant) ----------
-  void _showUploadConfirmationDialog(File file) {
+  void _showUploadConfirmationDialog() {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     
+    // --- FIX: Use platform-appropriate image widget for dialog preview ---
+    final Widget previewWidget;
+    if (_lastPickedFile != null) {
+      previewWidget = Image.file(_lastPickedFile!, fit: BoxFit.cover, height: 200);
+    } else if (_lastPickedBytes != null) {
+      previewWidget = Image.memory(_lastPickedBytes!, fit: BoxFit.cover, height: 200);
+    } else {
+      previewWidget = const SizedBox(height: 200);
+    }
+    // --- END FIX ---
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -79,7 +128,7 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.file(file, fit: BoxFit.cover, height: 200),
+                child: previewWidget,
               ),
             ),
             const SizedBox(height: 16),
@@ -96,7 +145,10 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
             child: OutlinedButton(
               onPressed: () {
                 Navigator.pop(ctx);
-                setState(() => _lastPickedImage = null);
+                setState(() {
+                    _lastPickedFile = null;
+                    _lastPickedBytes = null;
+                });
               },
               child: const Text('Retake'),
               style: OutlinedButton.styleFrom(
@@ -112,12 +164,11 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
             child: ElevatedButton.icon(
               onPressed: () {
                 Navigator.pop(ctx);
-                _startUploadProcess(file);
+                _startUploadProcess();
               },
               icon: const Icon(Icons.cloud_upload_outlined, size: 20),
               label: const Text('Diagnose'),
               style: ElevatedButton.styleFrom(
-                // Use Secondary (Accent) for the main action, as defined in main.dart
                 backgroundColor: colorScheme.secondary, 
                 foregroundColor: colorScheme.onSecondary,
                 padding: const EdgeInsets.symmetric(vertical: 14),
@@ -131,27 +182,47 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
     );
   }
 
-  // ---------- Upload process (Logic remains the same) ----------
-  Future<void> _startUploadProcess(File file) async {
-    if (_isUploading) return;
+  // ---------- Upload process (CRITICAL: Assuming CloudinaryService supports both File and Bytes) ----------
+  Future<void> _startUploadProcess() async {
+    // Check if we have data ready
+    if (_isUploading || (_lastPickedFile == null && _lastPickedBytes == null)) return;
+    
     setState(() => _isUploading = true);
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Uploading image...'), duration: Duration(seconds: 2)),
     );
-
+    
+    final theme = Theme.of(context);
+    
     try {
-      final url = await CloudinaryService.uploadImage(file);
+      String? url;
+      
+      if (_lastPickedFile != null) {
+        // MOBILE/DESKTOP: Upload the File object
+        // NOTE: The CloudinaryService implementation must handle the "file:" parameter.
+        url = await CloudinaryService.uploadImage(file: _lastPickedFile);
+      } else if (_lastPickedBytes != null) {
+        // WEB: Upload the raw bytes and file name
+        // NOTE: The CloudinaryService implementation must handle "fileBytes:" and "fileName:" parameters.
+        url = await CloudinaryService.uploadImage(
+          fileBytes: _lastPickedBytes,
+          fileName: _lastPickedFileName,
+        );
+      }
+
       if (url == null) throw Exception('Upload returned null URL');
+      
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception('User not signed in');
-      await AuthService().saveCropImage(url: url, userId: user.uid, source: 'camera');
+      
+      await AuthService().saveCropImage(url: url, userId: user.uid, source: kIsWeb ? 'web' : 'mobile');
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Diagnosis complete! Results are ready.'),
-          backgroundColor: Theme.of(context).colorScheme.primary, 
+          backgroundColor: theme.colorScheme.primary, 
         ),
       );
 
@@ -159,13 +230,15 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
       debugPrint('Upload/process error: $e\n$st');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Upload failed. Error: $e'), backgroundColor: Theme.of(context).colorScheme.error),
+        SnackBar(content: Text('Upload failed. Error: $e'), backgroundColor: theme.colorScheme.error),
       );
     } finally {
       if (mounted) {
         setState(() {
           _isUploading = false;
-          _lastPickedImage = null;
+          _lastPickedFile = null;
+          _lastPickedBytes = null;
+          _lastPickedFileName = null;
         });
       }
     }
@@ -198,7 +271,6 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        // Use a light tint or surface variant for distinct background
         color: colorScheme.surfaceVariant, 
         borderRadius: BorderRadius.circular(_cardRadius),
       ),
@@ -276,8 +348,22 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
       );
     }
     
-    if (_lastPickedImage != null) {
+    if (_lastPickedFile != null || _lastPickedBytes != null) {
       // 2. Image Preview State
+      // FIX: Use platform-appropriate image widget
+      final Widget previewWidget;
+      if (!kIsWeb && _lastPickedFile != null) {
+        previewWidget = Image.file(_lastPickedFile!, fit: BoxFit.cover, width: double.infinity);
+      } else if (kIsWeb && _lastPickedBytes != null) {
+        previewWidget = Image.memory(_lastPickedBytes!, fit: BoxFit.cover, width: double.infinity);
+      } else {
+        // Fallback for an unexpected state (e.g., trying to use File on Web)
+        previewWidget = Container(
+          color: colorScheme.surfaceVariant,
+          child: Center(child: Icon(Icons.broken_image, size: 50, color: colorScheme.error)),
+        );
+      }
+
       return Card(
         color: cardBg,
         elevation: 8,
@@ -290,7 +376,7 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
               borderRadius: const BorderRadius.vertical(top: Radius.circular(_cardRadius)),
               child: AspectRatio(
                 aspectRatio: 4 / 3,
-                child: Image.file(_lastPickedImage!, fit: BoxFit.cover, width: double.infinity),
+                child: previewWidget,
               ),
             ),
             Padding(
@@ -299,7 +385,7 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () => _showUploadConfirmationDialog(_lastPickedImage!),
+                      onPressed: _showUploadConfirmationDialog, // Re-show dialog from state
                       icon: const Icon(Icons.check_circle_outline, size: 20),
                       label: const Text('Confirm & Diagnose'),
                       style: ElevatedButton.styleFrom(
@@ -311,7 +397,10 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
                   ),
                   const SizedBox(width: 12),
                   OutlinedButton.icon(
-                    onPressed: () => setState(() => _lastPickedImage = null),
+                    onPressed: () => setState(() {
+                        _lastPickedFile = null;
+                        _lastPickedBytes = null;
+                    }),
                     icon: const Icon(Icons.close, size: 20),
                     label: const Text('Discard'),
                     style: OutlinedButton.styleFrom(
@@ -353,7 +442,6 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
               icon: Icons.camera_alt, 
               label: 'Camera', 
               onPressed: () => _pickImage(ImageSource.camera), 
-              // 🌿 Use Primary Color for Camera (the vibrant green from main.dart)
               color: colorScheme.primary,
               foregroundColor: colorScheme.onPrimary,
             ),
@@ -362,7 +450,6 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
               icon: Icons.photo_library_outlined, 
               label: 'Gallery', 
               onPressed: () => _pickImage(ImageSource.gallery), 
-              // 🌑 Use Dark Surface Color for Gallery (the dark grey from main.dart)
               color: theme.cardColor, 
               foregroundColor: colorScheme.onSurface,
             ),
@@ -421,3 +508,11 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
     );
   }
 }
+// NOTE: Assuming your CloudinaryService in ../services/cloudinary_service.dart has been updated to handle the following signature for web uploads:
+//
+// class CloudinaryService {
+//   // ... existing logic
+//   static Future<String?> uploadImage({File? file, Uint8List? fileBytes, String? fileName, String folder = 'diagnostics'}) async {
+//      // ... Logic to use file path OR fileBytes/fileName based on which is provided ...
+//   }
+// }

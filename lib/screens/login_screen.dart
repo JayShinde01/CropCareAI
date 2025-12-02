@@ -400,7 +400,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 onPressed: _loading ? null : _googleSignIn,
                                 icon: Image.asset(
                                   // NOTE: Using a cleaner icon fallback if the asset image fails
-                                  'assets/images/google_logo.png', 
+                                  'assets/images/google_logo.jpg', 
                                   width: 22,
                                   height: 22,
                                   errorBuilder: (_, __, ___) => Icon(Icons.public, color: colorScheme.primary),
