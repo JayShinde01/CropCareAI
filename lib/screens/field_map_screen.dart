@@ -52,7 +52,6 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
 
   // map fieldId -> file:// template path
   final Map<String, String> _localTileTemplates = {};
-  // double _currentZoom = 16; // default
 
   // Location tracking
   Position? _currentPosition;
@@ -61,6 +60,18 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
 
   // Download cancellation
   bool _cancelDownload = false;
+
+  // Satellite / zoom controls
+  bool _useSatellite = false;
+  double _currentZoomLevel = 15.0;
+  // ESRI World Imagery (no API key required for basic use)
+  final String _esriSatelliteTemplate =
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+
+  // Mapbox (uncomment to use and set token)
+  // final String _mapboxToken = '<YOUR_MAPBOX_TOKEN>';
+  // final String _mapboxSatelliteTemplate =
+  //     'https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/256/{z}/{x}/{y}@2x?access_token=$_mapboxToken';
 
   @override
   void initState() {
@@ -85,7 +96,9 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
         LatLng(19.074983, 72.880655),
       ],
       color: const Color.fromRGBO(34, 197, 94, 0.45),
-      history: ['Created on ${DateTime.now().subtract(const Duration(days: 3)).toLocal().toString().split('.')[0]}'],
+      history: [
+        'Created on ${DateTime.now().subtract(const Duration(days: 3)).toLocal().toString().split('.')[0]}'
+      ],
     );
     _fields.add(demo);
     WidgetsBinding.instance.addPostFrameCallback((_) => _zoomToField(demo));
@@ -138,7 +151,9 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
       final lngJ = poly[j].longitude;
 
       final intersect = ((latI > point.latitude) != (latJ > point.latitude)) &&
-          (point.longitude < (lngJ - lngI) * (point.latitude - latI) / (latJ - latI) + lngI);
+          (point.longitude <
+              (lngJ - lngI) * (point.latitude - latI) / (latJ - latI) +
+                  lngI);
       if (intersect) inside = !inside;
     }
     return inside;
@@ -155,7 +170,10 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Name your field'),
-        content: TextField(controller: nameController, decoration: const InputDecoration(hintText: 'e.g. North Wheat Plot')),
+        content: TextField(
+            controller: nameController,
+            decoration:
+                const InputDecoration(hintText: 'e.g. North Wheat Plot')),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(onPressed: () => Navigator.pop(context, nameController.text.trim()), child: const Text('Save')),
@@ -216,7 +234,8 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
       }
     }
 
-    final result = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
+    final result =
+        await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
     if (result == null || result.files.isEmpty) return;
     final picked = result.files.first;
 
@@ -228,7 +247,8 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
       if (!kIsWeb && path != null) {
         // compress and write to temp file
         final tmpDir = await getTemporaryDirectory();
-        final outPath = '${tmpDir.path}/${DateTime.now().millisecondsSinceEpoch}_drone.jpg';
+        final outPath =
+            '${tmpDir.path}/${DateTime.now().millisecondsSinceEpoch}_drone.jpg';
 
         final compressedBytes = await FlutterImageCompress.compressWithFile(
           path,
@@ -243,7 +263,8 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
           setState(() {
             field.droneImageFile = outFile;
             field.droneImageBytes = null; // keep file instead of memory bytes
-            field.history.add('Drone image attached (compressed) on ${DateTime.now().toLocal().toString().split('.')[0]}');
+            field.history.add(
+                'Drone image attached (compressed) on ${DateTime.now().toLocal().toString().split('.')[0]}');
           });
         } else {
           // fallback: if compress returns null, copy original path to temp
@@ -252,7 +273,8 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
           setState(() {
             field.droneImageFile = outFile;
             field.droneImageBytes = null;
-            field.history.add('Drone image attached (copied) on ${DateTime.now().toLocal().toString().split('.')[0]}');
+            field.history.add(
+                'Drone image attached (copied) on ${DateTime.now().toLocal().toString().split('.')[0]}');
           });
         }
       } else {
@@ -266,7 +288,8 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
           );
           setState(() {
             field.droneImageBytes = Uint8List.fromList(compressedBytes);
-            field.history.add('Drone image attached (compressed) on ${DateTime.now().toLocal().toString().split('.')[0]}');
+            field.history.add(
+                'Drone image attached (compressed) on ${DateTime.now().toLocal().toString().split('.')[0]}');
           });
         } else {
           _showSnack('No image data available to attach');
@@ -393,7 +416,7 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
         ),
     ],
   ),
-),
+), 
 
           ]),
         ),
@@ -407,17 +430,29 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
     return const Text('No drone map available');
   }
 
-  void _showHistory(Field field) {
-    Navigator.pop(context);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Field History'),
-        content: SizedBox(width: double.maxFinite, child: ListView(children: field.history.reversed.map((h) => ListTile(title: Text(h, style: const TextStyle(fontSize: 14)))).toList())),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+ void _showHistory(Field field) {
+  Navigator.pop(context);
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Field History'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ListView(
+          children: field.history.reversed
+              .map((h) => ListTile(
+                    title: Text(h, style: const TextStyle(fontSize: 14)),
+                  ))
+              .toList(),
+        ),
       ),
-    );
-  }
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+      ],
+    ),
+  );
+}
+
 
   // -----------------------------
   // Offline tile helpers
@@ -429,35 +464,31 @@ class _FieldMapScreenState extends State<FieldMapScreen> {
     if (!await dir.exists()) await dir.create(recursive: true);
     return dir;
   }
-Future<String?> _computeLocalTemplateIfExists(String fieldId) async {
-  if (kIsWeb) return null;
-  try {
-    final folder = await _getTilesFolderForField(fieldId);
-    bool hasTile = false;
 
-    await for (final e in folder.list(recursive: true)) {
-      if (e is File && e.path.endsWith('.png')) {
+  Future<String?> _computeLocalTemplateIfExists(String fieldId) async {
+    if (kIsWeb) return null;
+    try {
+      final folder = await _getTilesFolderForField(fieldId);
+      bool hasTile = false;
 
-        // FIX: use string interpolation instead of +
-        final rel = e.path.replaceFirst('${folder.path}/', '');
-
-        if (RegExp(r'^\d+/\d+/\d+\.png$').hasMatch(rel)) {
-          hasTile = true;
-          break;
+      await for (final e in folder.list(recursive: true)) {
+        if (e is File && e.path.endsWith('.png')) {
+          final rel = e.path.replaceFirst('${folder.path}/', '');
+          if (RegExp(r'^\d+/\d+/\d+\.png$').hasMatch(rel)) {
+            hasTile = true;
+            break;
+          }
         }
       }
+
+      if (!hasTile) return null;
+
+      final prefix = Uri.file('${folder.path}/').toString();
+      return '$prefix{z}/{x}/{y}.png';
+    } catch (_) {
+      return null;
     }
-
-    if (!hasTile) return null;
-
-    // file:/// prefix + z/x/y template
-    final prefix = Uri.file('${folder.path}/').toString();
-    return '$prefix{z}/{x}/{y}.png';
-
-  } catch (_) {
-    return null;
   }
-}
 
   Future<void> _deleteLocalTiles(String fieldId) async {
     if (kIsWeb) return;
@@ -587,7 +618,6 @@ Future<String?> _computeLocalTemplateIfExists(String fieldId) async {
     _cancelDownload = true;
   }
 
- 
   Future<bool> _ensureLocationPermission() async {
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
@@ -626,6 +656,7 @@ Future<String?> _computeLocalTemplateIfExists(String fieldId) async {
       if (!mounted) return;
       setState(() {});
       final latLng = LatLng(pos.latitude, pos.longitude);
+      _currentZoomLevel = zoom;
       _mapController.move(latLng, zoom);
       _showSnack('Centered to your location');
     } catch (e) {
@@ -665,11 +696,11 @@ Future<String?> _computeLocalTemplateIfExists(String fieldId) async {
     if (field.polygon.isEmpty) return;
     final bounds = LatLngBounds.fromPoints(field.polygon);
     try {
-      _mapController.fitCamera(CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(60), maxZoom: 18));
+      _mapController.fitCamera(CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(60), maxZoom: 20));
     } catch (_) {
       // fallback
       final center = bounds.center;
-      _mapController.move(center, 16.0);
+      _mapController.move(center, _currentZoomLevel);
     }
   }
 
@@ -698,74 +729,82 @@ Future<String?> _computeLocalTemplateIfExists(String fieldId) async {
           future: _getAnyLocalTemplateForMap(),
           builder: (context, snapshot) {
             final anyTemplate = snapshot.data;
+
+            // choose base tile template: if satellite is toggled use satellite provider
+            final baseTemplate = _useSatellite ? _esriSatelliteTemplate : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+            final baseSubdomains = _useSatellite ? <String>[] : ['a', 'b', 'c'];
+
             return FlutterMap(
-  mapController: _mapController,
-  options: MapOptions(
-    initialCenter: LatLng(19.075983, 72.877655),
-    initialZoom: 15,
-    onTap: _onMapTap,
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: LatLng(19.075983, 72.877655),
+                initialZoom: _currentZoomLevel,
+                minZoom: 1,
+                // increase maxZoom to allow deeper zooming (subject to provider limit)
+                maxZoom: 22,
+                onTap: _onMapTap,
+              ),
+              children: [
+                // Base tile layer (OSM or Satellite)
+                TileLayer(
+                  urlTemplate: baseTemplate,
+                  subdomains: baseSubdomains,
+                  userAgentPackageName: 'com.example.field_map_app',
+                  // Set provider native zoom if you know it. ESRI often provides up to ~19.
+                  maxNativeZoom: 19,
+                  maxZoom: 22,
+                ),
+
+                // Local offline overlay: prefer selected field template, otherwise any available template
+                if (_selectedField != null && _localTileTemplates.containsKey(_selectedField!.id))
+                  TileLayer(urlTemplate: _localTileTemplates[_selectedField!.id]!)
+                else if (anyTemplate != null)
+                  Opacity(opacity: 0.95, child: TileLayer(urlTemplate: anyTemplate)),
+
+                // Field polygons
+                PolygonLayer(
+                  polygons: [
+                    ..._fields.map((f) => Polygon(
+                          points: f.polygon,
+                          color: f.color,
+                          borderColor: const Color.fromRGBO(0, 0, 0, 0.35),
+                          borderStrokeWidth: 2,
+                          isFilled: true,
+                        )),
+                    if (_isAdding && _currentVertices.isNotEmpty)
+                      Polygon(
+                        points: _currentVertices,
+                        color: const Color.fromRGBO(250, 204, 21, 0.35),
+                        borderColor: const Color.fromRGBO(250, 204, 21, 0.9),
+                        borderStrokeWidth: 2,
+                        isFilled: true,
+                      ),
+                  ],
+                  polygonCulling: true,
+                ),
+
+                // Vertex markers shown during drawing (MarkerLayer expects a List<Marker>)
+               // Vertex markers while drawing a field
+if (_isAdding)
+  MarkerLayer(
+    markers: _currentVertices
+        .map(
+          (pt) => Marker(
+            point: pt,
+            width: 30,
+            height: 30,
+            child: const Icon(
+              Icons.location_on,
+              size: 30,
+              color: Colors.orange,
+            ),
+          ),
+        )
+        .toList(),
   ),
-  children: [
-    // Base OSM tiles
-     TileLayer(
-      urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      subdomains: ['a', 'b', 'c'],
-      userAgentPackageName: 'com.example.field_map_app',
-    ),
 
-    // Local offline overlay: prefer selected field template, otherwise any available template
-    if (_selectedField != null && _localTileTemplates.containsKey(_selectedField!.id))
-      TileLayer(urlTemplate: _localTileTemplates[_selectedField!.id]!)
-    else
-      if (anyTemplate != null)
-        Opacity(opacity: 0.95, child: TileLayer(urlTemplate: anyTemplate)),
-
-    // Field polygons
-    PolygonLayer(
-      polygons: [
-        // map fields to Polygon widgets (Iterable spread is fine here)
-        ..._fields.map((f) => Polygon(
-              points: f.polygon,
-              color: f.color,
-              borderColor: const Color.fromRGBO(0, 0, 0, 0.35),
-              borderStrokeWidth: 2,
-              isFilled: true,
-            )),
-        // Temporary polygon while drawing a new field
-        if (_isAdding && _currentVertices.isNotEmpty)
-          Polygon(
-            points: _currentVertices,
-            color: const Color.fromRGBO(250, 204, 21, 0.35),
-            borderColor: const Color.fromRGBO(250, 204, 21, 0.9),
-            borderStrokeWidth: 2,
-            isFilled: true,
-          ),
-      ],
-      polygonCulling: true,
-    ),
-
-    // Vertex markers shown during drawing (MarkerLayer expects a List<Marker>)
-    if (_isAdding)
-      MarkerLayer(
-  markers: _currentVertices
-      .map(
-        (pt) => Marker(
-          point: pt,
-          width: 30,
-          height: 30,
-          child: const Icon(
-            Icons.location_on,
-            size: 30,
-            color: Colors.orange,
-          ),
-        ),
-      )
-      .toList(),
-)
-,
-
-    // User location marker
-   if (_currentPosition != null)
+// User location marker
+if (_currentPosition != null)
   MarkerLayer(
     markers: [
       Marker(
@@ -784,9 +823,8 @@ Future<String?> _computeLocalTemplateIfExists(String fieldId) async {
     ],
   ),
 
-  ],
-);
-
+              ],
+            );
           },
         ),
 
@@ -798,10 +836,70 @@ Future<String?> _computeLocalTemplateIfExists(String fieldId) async {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(color: const Color.fromARGB(230, 70, 69, 69), borderRadius: BorderRadius.circular(8)),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(_isAdding ? 'Add Field: Tap on map to place corners' : 'Tap a field to view details', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(_isAdding ? 'Add Field: Tap on map to place corners' : 'Tap a field to view details', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
               const SizedBox(height: 4),
-              const Text('Use the big buttons at the bottom to add fields or manage them.'),
+              const Text('Use the big buttons at the bottom to add fields or manage them.', style: TextStyle(color: Colors.white70)),
             ]),
+          ),
+        ),
+
+        // Satellite toggle + zoom slider (top-right)
+        Positioned(
+          right: 12,
+          top: 12,
+          child: Column(
+            children: [
+              Card(
+                color: Colors.black87,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.satellite, color: Colors.white, size: 18),
+                      const SizedBox(width: 6),
+                      const Text('Satellite', style: TextStyle(color: Colors.white)),
+                      Switch(
+                        value: _useSatellite,
+                        onChanged: (v) {
+                          setState(() => _useSatellite = v);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Card(
+                color: Colors.black87,
+                child: SizedBox(
+                  width: 160,
+                  child: Column(
+                    children: [
+                      Slider(
+                        value: _currentZoomLevel,
+                        min: 1,
+                        max: 22,
+                        divisions: 21,
+                        label: _currentZoomLevel.toStringAsFixed(1),
+                        onChanged: (v) {
+                          setState(() {
+                            _currentZoomLevel = v;
+                            try {
+                              _mapController.move(_mapController.center, _currentZoomLevel);
+                            } catch (_) {}
+                          });
+                        },
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 6.0),
+                        child: Text('Zoom ${_currentZoomLevel.toStringAsFixed(1)}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
 
@@ -850,6 +948,25 @@ Future<String?> _computeLocalTemplateIfExists(String fieldId) async {
               label: const Text('My Fields', style: TextStyle(fontSize: 16)),
             ),
           ]),
+        ),
+
+        // Attribution footer (provider info)
+        Positioned(
+          left: 12,
+          right: 12,
+          bottom: 84,
+          child: SafeArea(
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(8)),
+                child: Text(
+                  _useSatellite ? 'Imagery: ESRI World Imagery' : 'Tiles: OpenStreetMap',
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+              ),
+            ),
+          ),
         ),
       ]),
     );

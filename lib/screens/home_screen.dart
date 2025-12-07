@@ -5,12 +5,15 @@ import 'package:demo/screens/CropCare.dart';
 import 'package:demo/screens/Marketplace_screen.dart';
 import 'package:demo/screens/Notification.dart';
 import 'package:demo/screens/community_post_page.dart';
+import 'package:demo/screens/dashboard_screen.dart';
 import 'package:demo/screens/diagnose_screen.dart';
 import 'package:demo/screens/field_map_screen.dart';
 import 'package:demo/screens/schedule_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:demo/widgets/theme_manager.dart';
+import 'package:demo/screens/chat_screen.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -27,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Navigation
   final List<Widget> _screens = const [
-    DiagnoseScreen(),
+    HomeContent(),
     MarketplacePage(),
     DiagnoseScreen(),
     CommunityPostPage(),
@@ -74,151 +77,162 @@ class _HomeScreenState extends State<HomeScreen> {
     final avatarSize = isMobile ? 36.0 : (isTablet ? 42.0 : 48.0);
     final titleFont = isMobile ? 18.0 : (isTablet ? 20.0 : 22.0);
 
-    return Scaffold(
-      backgroundColor: offWhite,
-      drawer: _buildAppDrawer(context, isDesktop: isDesktop),
+ return Scaffold(
+  backgroundColor: offWhite,
+  drawer: _buildAppDrawer(context, isDesktop: isDesktop),
 
-      // Responsive AppBar
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(toolbarHeight),
-        child: SafeArea(
-          top: true,
-          child: AppBar(
-            automaticallyImplyLeading: true,
-            backgroundColor: primaryGreen,
-            elevation: 2,
-            centerTitle: false,
-            toolbarHeight: toolbarHeight,
-            titleSpacing: 12,
-            title: Row(
-              children: [
-                Container(
-                  width: avatarSize,
-                  height: avatarSize,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 4),
-                    ],
-                  ),
-                  child: Icon(Icons.eco, color: primaryGreen, size: iconSize),
-                ),
+  // ⭐ Floating Chatbot Button (Added here)
+  floatingActionButton: FloatingActionButton(
+    onPressed: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ChatScreen()),
+      );
+    },
+    backgroundColor: primaryGreen,
+    child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+  ),
 
-                SizedBox(width: isMobile ? 5 : 7),
-
-                Flexible(
-                  child: Text(
-                    'CropCareAI',
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: titleFont),
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4.0),
-                child: ThemeToggleButton(),
-              ),
-
-              IconButton(
-                tooltip: 'Schedule',
-                icon: Icon(Icons.event_note_outlined, color: Colors.white, size: iconSize + 2),
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ScheduleScreen())),
-              ),
-
-              Padding(
-                padding: EdgeInsets.only(right: isMobile ? 4 : 8),
-                child: _notificationButton(isMobile: isMobile, iconSize: iconSize),
-              ),
-            ],
-          ),
-        ),
-      ),
-
-      // Body: Adaptive layout
-      body: Row(
+  // Responsive AppBar
+  appBar: PreferredSize(
+    preferredSize: Size.fromHeight(toolbarHeight),
+    child: AppBar(
+      automaticallyImplyLeading: true,
+      backgroundColor: primaryGreen,
+      elevation: 2,
+      centerTitle: false,
+      toolbarHeight: toolbarHeight,
+      titleSpacing: 12,
+      title: Row(
         children: [
-          // On large screens show a NavigationRail instead of BottomNavigationBar
-          if (isDesktop) ...[
-            NavigationRail(
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: _onNavSelected,
-              extended: width > 1400,
-              leading: Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Column(
-                  children: [
-                    Container(
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                      child: Icon(Icons.eco, color: primaryGreen),
-                    ),
-                  ],
-                ),
-              ),
-              labelType: NavigationRailLabelType.all,
-              minWidth: 72,
-              destinations: const [
-                NavigationRailDestination(icon: Icon(Icons.chat_outlined), label: Text('Chat')),
-                NavigationRailDestination(icon: Icon(Icons.storefront), label: Text('Market')),
-                NavigationRailDestination(icon: Icon(Icons.biotech), label: Text('Diagnose')),
-                NavigationRailDestination(icon: Icon(Icons.groups_outlined), label: Text('Community')),
-                NavigationRailDestination(icon: Icon(Icons.map_outlined), label: Text('Map')),
-                NavigationRailDestination(icon: Icon(Icons.info_outline), label: Text('Info')),
+          Container(
+            width: avatarSize,
+            height: avatarSize,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 4),
               ],
             ),
-            const VerticalDivider(width: 1, thickness: 1, color: Color(0xFFE6E6E6)),
-          ],
+            child: Icon(Icons.eco, color: primaryGreen, size: iconSize),
+          ),
 
-          // Main content area
-          Expanded(
-            child: IndexedStack(
-              index: _selectedIndex,
-              children: _screens.map((w) => SafeArea(top: false, bottom: false, child: w)).toList(),
+          SizedBox(width: isMobile ? 5 : 7),
+
+          Flexible(
+            child: Text(
+              'CropCareAI',
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: titleFont),
             ),
           ),
         ],
       ),
+      actions: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4.0),
+          child: ThemeToggleButton(),
+        ),
 
-      // Bottom navigation for mobile & tablet (desktop uses rail)
-      bottomNavigationBar: isDesktop
-          ? null
-          : Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border(top: BorderSide(color: Colors.grey.shade200, width: 0.6)),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)],
-              ),
-              child: SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6.0),
-                  child: BottomNavigationBar(
-                    type: BottomNavigationBarType.fixed,
-                    backgroundColor: Colors.white,
-                    selectedItemColor: primaryGreen,
-                    unselectedItemColor: Colors.black54,
-                    showUnselectedLabels: true,
-                    currentIndex: _selectedIndex,
-                    onTap: _onNavSelected,
-                    items: const [
-                      BottomNavigationBarItem(icon: Icon(Icons.chat_outlined), label: 'Chat'),
-                      BottomNavigationBarItem(icon: Icon(Icons.storefront), label: 'Market'),
-                      BottomNavigationBarItem(icon: Icon(Icons.biotech), label: 'Diagnose'),
-                      BottomNavigationBarItem(icon: Icon(Icons.groups_outlined), label: 'Community'),
-                      BottomNavigationBarItem(icon: Icon(Icons.map_outlined), label: 'Map'),
-                      BottomNavigationBarItem(icon: Icon(Icons.info_outline), label: 'Info'),
-                    ],
-                  ),
+        IconButton(
+          tooltip: 'Schedule',
+          icon: Icon(Icons.event_note_outlined, color: Colors.white, size: iconSize + 2),
+          onPressed: () => Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const ScheduleScreen())),
+        ),
+
+        Padding(
+          padding: EdgeInsets.only(right: isMobile ? 4 : 8),
+          child: _notificationButton(isMobile: isMobile, iconSize: iconSize),
+        ),
+      ],
+    ),
+  ),
+
+  body: Row(
+    children: [
+      if (isDesktop) ...[
+        NavigationRail(
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: _onNavSelected,
+          extended: width > 1400,
+          labelType: width > 1400
+              ? NavigationRailLabelType.none
+              : NavigationRailLabelType.all,
+          leading: Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Column(
+              children: [
+                Container(
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                  child: Icon(Icons.eco, color: primaryGreen),
                 ),
-              ),
+              ],
             ),
-    );
+          ),
+          minWidth: 72,
+          destinations: const [
+            NavigationRailDestination(icon: Icon(Icons.chat_outlined), label: Text('Chat')),
+            NavigationRailDestination(icon: Icon(Icons.storefront), label: Text('Market')),
+            NavigationRailDestination(icon: Icon(Icons.biotech), label: Text('Diagnose')),
+            NavigationRailDestination(icon: Icon(Icons.groups_outlined), label: Text('Community')),
+            NavigationRailDestination(icon: Icon(Icons.map_outlined), label: Text('Map')),
+            NavigationRailDestination(icon: Icon(Icons.info_outline), label: Text('Info')),
+          ],
+        ),
+
+        const VerticalDivider(width: 1, thickness: 1, color: Color(0xFFE6E6E6)),
+      ],
+
+      Expanded(
+        child: IndexedStack(
+          index: _selectedIndex,
+          children: _screens.map(
+            (w) => SafeArea(top: false, bottom: false, child: w),
+          ).toList(),
+        ),
+      ),
+    ],
+  ),
+
+  bottomNavigationBar: isDesktop
+      ? null
+      : Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(top: BorderSide(color: Colors.grey.shade200, width: 0.6)),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6.0),
+            child: BottomNavigationBar(
+              type: BottomNavigationBarType.fixed,
+              backgroundColor: Colors.white,
+              selectedItemColor: primaryGreen,
+              unselectedItemColor: Colors.black54,
+              showUnselectedLabels: true,
+              currentIndex: _selectedIndex,
+              onTap: _onNavSelected,
+              items: const [
+                BottomNavigationBarItem(icon: Icon(Icons.chat_outlined), label: 'Chat'),
+                BottomNavigationBarItem(icon: Icon(Icons.storefront), label: 'Market'),
+                BottomNavigationBarItem(icon: Icon(Icons.biotech), label: 'Diagnose'),
+                BottomNavigationBarItem(icon: Icon(Icons.groups_outlined), label: 'Community'),
+                BottomNavigationBarItem(icon: Icon(Icons.map_outlined), label: 'Map'),
+                BottomNavigationBarItem(icon: Icon(Icons.info_outline), label: 'Info'),
+              ],
+            ),
+          ),
+        ),
+);
+
   }
 
   // Notification button with badge

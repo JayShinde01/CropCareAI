@@ -194,14 +194,16 @@ class LandingScreen extends StatelessWidget {
                             // Navigate to login for authenticated use
                             Navigator.pushNamed(context, '/login');
                           },
+                          
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: const Color.fromARGB(255, 4, 150, 9),
+                            foregroundColor: Colors.green,
+                            side: BorderSide(color: colorScheme.onPrimary.withOpacity(0.5), width: 1.5),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
                           child: const Padding(
                             padding: EdgeInsets.symmetric(vertical: 12),
                             child: Text('Login', style: TextStyle(fontWeight: FontWeight.w700,color: Colors.lightGreenAccent)),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: colorScheme.onPrimary,
-                            side: BorderSide(color: colorScheme.onPrimary.withOpacity(0.5), width: 1.5),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                         ),
                       )
