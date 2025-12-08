@@ -19,24 +19,19 @@ dependencies:
   # Authentication
   google_sign_in: ^6.0.0
 
-  # Image & Files
-  
+  # HTTP & Files
   http: ^1.1.0
-
   image_picker: ^1.1.2
   file_picker: ^8.1.2
   path_provider: ^2.1.4
   flutter_image_compress: ^2.1.0
   archive: ^3.3.7
-  
   image_picker_for_web: ^3.0.3
   camera: ^0.11.0+2
   camera_web: ^0.3.2+5
 
   # Localization
-  easy_localization: ^3.0.0
-
-  # Storage & Preferences
+  easy_localization: ^3.0.3
   shared_preferences: ^2.2.3
 
   # Audio & Media
@@ -57,20 +52,8 @@ dependencies:
   # Permissions
   permission_handler: ^11.3.0
 
-  # Networking
-  
-
   # Utilities
   url_launcher: ^6.3.0
-
-  # -------- OPTIONAL PACKAGES --------
-  # dio: ^5.3.2
-  # tflite_flutter: ^0.10.2
-  # tflite_flutter_helper: ^0.4.0
-  # geocoding: ^3.0.0
-  # flutter_map_tile_caching: ^9.0.0
-  # flutter_map_marker_cluster: ^1.0.3
-  #------------------------------------
 
 dev_dependencies:
   flutter_test:
@@ -82,4 +65,4 @@ flutter:
 
   assets:
     - assets/images/google_logo.jpg
-    - assets/langs/languages.json
+    - assets/langs/

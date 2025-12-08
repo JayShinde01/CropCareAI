@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 import '../services/auth_service.dart';
 
@@ -88,19 +89,19 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/home');
     } on FirebaseAuthException catch (e) {
-      String message = 'Login failed. Please try again.';
+      String message = tr('login_failed_generic');
       if (e.code == 'user-not-found') {
-        message = 'No account found for that email.';
+        message = tr('no_account_found');
       } else if (e.code == 'wrong-password') {
-        message = 'Incorrect password.';
+        message = tr('incorrect_password');
       } else if (e.code == 'invalid-email') {
-        message = 'Invalid email address.';
+        message = tr('invalid_email');
       } else if (e.code == 'user-disabled') {
-        message = 'This account has been disabled.';
+        message = tr('account_disabled');
       }
       _showError(message);
     } catch (e) {
-      _showError('Login failed. Please try again.');
+      _showError(tr('login_failed_generic'));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -117,14 +118,13 @@ class _LoginScreenState extends State<LoginScreen> {
         return AlertDialog(
           backgroundColor: theme.cardColor,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('Reset password', style: theme.textTheme.titleLarge),
+          title: Text(tr('reset_password_title'), style: theme.textTheme.titleLarge),
           content: TextFormField(
             controller: emailController,
             keyboardType: TextInputType.emailAddress,
             decoration: InputDecoration(
-              hintText: 'Enter your email',
-              // Rely on theme input decoration settings
-              filled: true, 
+              hintText: tr('enter_email_hint'),
+              filled: true,
               fillColor: theme.inputDecorationTheme.fillColor,
             ),
             style: theme.textTheme.bodyMedium,
@@ -132,17 +132,16 @@ class _LoginScreenState extends State<LoginScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: TextStyle(color: colorScheme.onSurface)),
+              child: Text(tr('cancel'), style: TextStyle(color: colorScheme.onSurface)),
             ),
             TextButton(
               onPressed: () async {
                 final email = emailController.text.trim();
-                if (email.isEmpty ||
-                    !RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
+                if (email.isEmpty || !RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: const Text('Enter a valid email'),
+                      content: Text(tr('enter_valid_email')),
                       backgroundColor: colorScheme.error,
                     ),
                   );
@@ -153,28 +152,27 @@ class _LoginScreenState extends State<LoginScreen> {
                 setState(() => _loading = true);
 
                 try {
-                  await FirebaseAuth.instance
-                      .sendPasswordResetEmail(email: email);
+                  await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: const Text('Password reset email sent. Check your inbox.'),
+                      content: Text(tr('password_reset_sent')),
                       backgroundColor: colorScheme.primary,
                     ),
                   );
                 } on FirebaseAuthException catch (e) {
-                  String msg = 'Failed to send reset email.';
+                  String msg = tr('password_reset_failed');
                   if (e.code == 'user-not-found') {
-                    msg = 'No account found for that email.';
+                    msg = tr('no_account_found');
                   }
                   _showError(msg);
                 } catch (_) {
-                  _showError('Failed to send reset email.');
+                  _showError(tr('password_reset_failed'));
                 } finally {
                   if (mounted) setState(() => _loading = false);
                 }
               },
-              child: Text('Send', style: TextStyle(color: colorScheme.secondary)),
+              child: Text(tr('send'), style: TextStyle(color: colorScheme.secondary)),
             ),
           ],
         );
@@ -196,12 +194,12 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Google sign-in cancelled')),
+          SnackBar(content: Text(tr('google_signin_cancelled'))),
         );
       }
     } catch (e) {
       if (!mounted) return;
-      _showError('Google sign-in failed. ${e.toString()}');
+      _showError(tr('google_signin_failed', namedArgs: {'msg': e.toString()}));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -233,14 +231,13 @@ class _LoginScreenState extends State<LoginScreen> {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      // Use theme's scaffold background color
-      backgroundColor: theme.scaffoldBackgroundColor, 
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 450), // Slightly smaller max width for focus
+              constraints: const BoxConstraints(maxWidth: 450),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -249,27 +246,27 @@ class _LoginScreenState extends State<LoginScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [colorScheme.primary, colorScheme.secondary], // Fresh colors
+                        colors: [colorScheme.primary, colorScheme.secondary],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.circular(16), // More rounded corners
+                      borderRadius: BorderRadius.circular(16),
                       boxShadow: [BoxShadow(color: colorScheme.primary.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))],
                     ),
                     child: Row(
                       children: [
                         CircleAvatar(
                           radius: 24,
-                          backgroundColor: colorScheme.onPrimary, // White/Black based on theme
+                          backgroundColor: colorScheme.onPrimary,
                           child: Icon(Icons.eco, color: colorScheme.primary, size: 30),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Text(
-                            'Welcome back — sign in to Crop AI',
+                            tr('welcome_back'),
                             style: theme.textTheme.titleLarge?.copyWith(
-                              color: colorScheme.onPrimary, // Ensure text is readable on the gradient
-                              fontWeight: FontWeight.w800, 
+                              color: colorScheme.onPrimary,
+                              fontWeight: FontWeight.w800,
                               fontSize: 18,
                             ),
                           ),
@@ -277,7 +274,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                   ),
-                  
+
                   const SizedBox(height: 24),
 
                   // --- Form Card ---
@@ -293,10 +290,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             // Title
                             Align(
                               alignment: Alignment.centerLeft,
-                              child: Text(
-                                'Login to continue',
-                                style: theme.textTheme.titleMedium,
-                              ),
+                              child: Text(tr('login_to_continue'), style: theme.textTheme.titleMedium),
                             ),
                             const SizedBox(height: 20),
 
@@ -307,12 +301,15 @@ class _LoginScreenState extends State<LoginScreen> {
                               keyboardType: TextInputType.emailAddress,
                               textInputAction: TextInputAction.next,
                               autofillHints: const [AutofillHints.email],
-                              decoration: const InputDecoration(
-                                labelText: 'Email address',
-                                prefixIcon: Icon(Icons.email_outlined),
-                                // Theme controls the rest (fillColor, border radius, etc.)
+                              decoration: InputDecoration(
+                                labelText: tr('email_address'),
+                                prefixIcon: const Icon(Icons.email_outlined),
                               ),
-                              validator: (v) => (v == null || v.isEmpty) ? "Please enter email" : (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(v) ? "Enter a valid email" : null),
+                              validator: (v) => (v == null || v.isEmpty)
+                                  ? tr('please_enter_email')
+                                  : (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(v)
+                                      ? tr('enter_valid_email')
+                                      : null),
                               onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
                             ),
                             const SizedBox(height: 16),
@@ -324,16 +321,17 @@ class _LoginScreenState extends State<LoginScreen> {
                               obscureText: _obscurePassword,
                               textInputAction: TextInputAction.done,
                               decoration: InputDecoration(
-                                labelText: 'Password',
+                                labelText: tr('password'),
                                 prefixIcon: const Icon(Icons.lock_outline),
                                 suffixIcon: IconButton(
-                                  tooltip: _obscurePassword ? 'Show password' : 'Hide password',
+                                  tooltip: _obscurePassword ? tr('show_password') : tr('hide_password'),
                                   icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
                                   onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                                 ),
-                                // Theme controls the rest
                               ),
-                              validator: (v) => (v == null || v.isEmpty) ? "Enter your password" : (v.length < 6 ? "Password must be at least 6 characters" : null),
+                              validator: (v) => (v == null || v.isEmpty)
+                                  ? tr('enter_password')
+                                  : (v.length < 6 ? tr('password_min_length') : null),
                               onFieldSubmitted: (_) => _login(),
                             ),
 
@@ -348,10 +346,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                   onChanged: (v) => setState(() => _rememberMe = v ?? true),
                                 ),
                                 const SizedBox(width: 4),
-                                Expanded(child: Text('Remember me', style: theme.textTheme.bodyMedium)),
+                                Expanded(child: Text(tr('remember_me'), style: theme.textTheme.bodyMedium)),
                                 TextButton(
                                   onPressed: _loading ? null : _forgotPassword,
-                                  child: Text('Forgot Password?', style: TextStyle(color: colorScheme.secondary, fontWeight: FontWeight.bold)),
+                                  child: Text(tr('forgot_password'), style: TextStyle(color: colorScheme.secondary, fontWeight: FontWeight.bold)),
                                 ),
                               ],
                             ),
@@ -371,8 +369,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                   elevation: 3,
                                 ),
                                 child: _loading
-                                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                    : const Text('LOGIN', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: colorScheme.onPrimary))
+                                    : Text(tr('login_button'), style: const TextStyle(fontWeight: FontWeight.bold)),
                               ),
                             ),
 
@@ -384,7 +382,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 Expanded(child: Divider(color: colorScheme.onSurface.withOpacity(0.3))),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                                  child: Text('OR', style: TextStyle(color: colorScheme.onSurface.withOpacity(0.7), fontWeight: FontWeight.w500)),
+                                  child: Text(tr('or'), style: TextStyle(color: colorScheme.onSurface.withOpacity(0.7), fontWeight: FontWeight.w500)),
                                 ),
                                 Expanded(child: Divider(color: colorScheme.onSurface.withOpacity(0.3))),
                               ],
@@ -399,15 +397,13 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: OutlinedButton.icon(
                                 onPressed: _loading ? null : _googleSignIn,
                                 icon: Image.asset(
-                                  // NOTE: Using a cleaner icon fallback if the asset image fails
-                                  'assets/images/google_logo.jpg', 
+                                  'assets/images/google_logo.jpg',
                                   width: 22,
                                   height: 22,
                                   errorBuilder: (_, __, ___) => Icon(Icons.public, color: colorScheme.primary),
                                 ),
-                                label: const Text('Continue with Google'),
+                                label: Text(tr('continue_with_google')),
                                 style: OutlinedButton.styleFrom(
-                                  // In dark mode, this button must contrast with the surface
                                   backgroundColor: theme.brightness == Brightness.dark ? colorScheme.surfaceVariant : Colors.white,
                                   foregroundColor: colorScheme.onSurface,
                                   side: BorderSide(color: colorScheme.onSurface.withOpacity(0.2)),
@@ -419,17 +415,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
                             const SizedBox(height: 16),
 
-                            // Phone sign-in + guest
+                            // Skip as Guest
                             Row(
                               children: [
-                              
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: TextButton(
                                     onPressed: _skipAsGuest,
-                                    child: const Text('Skip as Guest'),
+                                    child: Text(tr('skip_as_guest')),
                                     style: TextButton.styleFrom(
-                                      foregroundColor: colorScheme.primary, // Use primary color for guest option
+                                      foregroundColor: colorScheme.primary,
                                       textStyle: const TextStyle(fontWeight: FontWeight.bold),
                                     ),
                                   ),
@@ -443,12 +438,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text("Don't have an account? ", style: theme.textTheme.bodyMedium),
+                                Text(tr('dont_have_account'), style: theme.textTheme.bodyMedium),
                                 TextButton(
                                   onPressed: () {
                                     Navigator.pushReplacementNamed(context, "/signup");
                                   },
-                                  child: Text('Sign Up', style: TextStyle(color: colorScheme.secondary, fontWeight: FontWeight.bold)),
+                                  child: Text(tr('sign_up'), style: TextStyle(color: colorScheme.secondary, fontWeight: FontWeight.bold)),
                                 ),
                               ],
                             ),

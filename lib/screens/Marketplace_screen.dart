@@ -1,6 +1,8 @@
+// lib/screens/marketplace_page.dart
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class MarketplacePage extends StatefulWidget {
   const MarketplacePage({Key? key}) : super(key: key);
@@ -13,20 +15,18 @@ class _MarketplacePageState extends State<MarketplacePage> {
   String selectedCategory = "All";
   String searchText = "";
 
-  // 🌿 REAL CROP IMAGES (Web-safe URLs)
-final List<Map<String, dynamic>> allProducts = [
-
-  // 🔥 10 WHEAT SEEDS
-  {
-    "name": "Hybrid Wheat Seeds Premium",
-    "description": "High-yield hybrid seeds suitable for all weather conditions.",
-    "category": "Seeds",
-    "price": 499,
- "image":  "https://images.jdmagicbox.com/quickquotes/images_main/hybrid-wheat-seeds-for-agriculture-2223020736-8625zs45.jpg",    
-    
-     "link": "https://www.amazon.in/s?k=hybrid+wheat+seeds",
-  },
-  {
+  // products (same data you provided)
+  final List<Map<String, dynamic>> allProducts = [
+    {
+      "name": "Hybrid Wheat Seeds Premium",
+      "description": "High-yield hybrid seeds suitable for all weather conditions.",
+      "category": "Seeds",
+      "price": 499,
+      "image":
+          "https://images.jdmagicbox.com/quickquotes/images_main/hybrid-wheat-seeds-for-agriculture-2223020736-8625zs45.jpg",
+      "link": "https://www.amazon.in/s?k=hybrid+wheat+seeds",
+    },
+     {
     "name": "Organic Wheat Seeds Grade A",
     "description": "Chemical-free seeds for natural farming and high protein wheat.",
     "category": "Seeds",
@@ -217,9 +217,9 @@ final List<Map<String, dynamic>> allProducts = [
     "image": "https://m.media-amazon.com/images/I/31iXKD9AzRL.jpg",
      "link": "https://www.amazon.in/s?k=crop+medicine",
   },
-
-  
-];
+    // ... (keep all other products exactly as before)
+    // For brevity I haven't repeated every product in this snippet — keep your original list here.
+  ];
 
   List<Map<String, dynamic>> get filteredProducts {
     return allProducts.where((product) {
@@ -227,44 +227,40 @@ final List<Map<String, dynamic>> allProducts = [
           selectedCategory == "All" || product["category"] == selectedCategory;
 
       final matchSearch =
-          product["name"].toLowerCase().contains(searchText.toLowerCase());
+          product["name"].toString().toLowerCase().contains(searchText.toLowerCase());
 
       return matchCategory && matchSearch;
     }).toList();
   }
 
-  // 🌐 Open Amazon Link
   Future<void> openBuyLink(String url) async {
     final uri = Uri.parse(url);
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
-  // 🌐 Amazon Search
   Future<void> searchAmazon() async {
     if (searchText.isEmpty) return;
-
-    final uri = Uri.parse(
-        "https://www.amazon.in/s?k=${searchText.replaceAll(" ", "+")}");
+    final uri = Uri.parse("https://www.amazon.in/s?k=${searchText.replaceAll(" ", "+")}");
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
-  // 📱💻 Responsive grid count
   int getCrossAxisCount(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
-
-    if (width > 1200) return 6; // Desktop
-    if (width > 800) return 4; // Tablet
-    return 2; // Mobile
+    if (width > 1200) return 6;
+    if (width > 800) return 4;
+    return 2;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-     
+    // Use localized app title if you want to display it here
+    final theme = Theme.of(context);
 
+    return Scaffold(
+      
       body: Column(
         children: [
-          // 🔍 Search Box
+          // Search Box
           Padding(
             padding: const EdgeInsets.all(10),
             child: Row(
@@ -272,7 +268,7 @@ final List<Map<String, dynamic>> allProducts = [
                 Expanded(
                   child: TextField(
                     decoration: InputDecoration(
-                      hintText: "Search Amazon products...",
+                      hintText: tr('market_search_hint'),
                       prefixIcon: const Icon(Icons.search),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -284,50 +280,46 @@ final List<Map<String, dynamic>> allProducts = [
                   ),
                 ),
                 const SizedBox(width: 10),
-
-                // AMAZON BUTTON
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
                   onPressed: searchAmazon,
-                  child: const Text("Amazon"),
+                  child: Text(tr('market_amazon_btn')),
                 ),
               ],
             ),
           ),
 
-          // 🔽 Category Dropdown
+          // Category Dropdown
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: DropdownButtonFormField<String>(
               value: selectedCategory,
               decoration: InputDecoration(
-                labelText: "Category",
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                labelText: tr('market_category_label'),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              items: const [
-                DropdownMenuItem(value: "All", child: Text("All")),
-                DropdownMenuItem(value: "Seeds", child: Text("Seeds")),
-                DropdownMenuItem(value: "Fertilizer", child: Text("Fertilizer")),
-                DropdownMenuItem(value: "Medicine", child: Text("Medicine")),
+              items: [
+                DropdownMenuItem(value: "All", child: Text(tr('cat_all'))),
+                DropdownMenuItem(value: "Seeds", child: Text(tr('cat_seeds'))),
+                DropdownMenuItem(value: "Fertilizer", child: Text(tr('cat_fertilizer'))),
+                DropdownMenuItem(value: "Medicine", child: Text(tr('cat_medicine'))),
               ],
               onChanged: (value) {
-                setState(() => selectedCategory = value!);
+                setState(() => selectedCategory = value ?? "All");
               },
             ),
           ),
 
           const SizedBox(height: 8),
 
-          // 🛒 Product Grid
+          // Product Grid
           Expanded(
             child: GridView.builder(
               padding: const EdgeInsets.all(10),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: getCrossAxisCount(context),
-                childAspectRatio: MediaQuery.of(context).size.width < 500 ? 0.60 : 0.80,
-
+                childAspectRatio:
+                    MediaQuery.of(context).size.width < 500 ? 0.60 : 0.80,
                 mainAxisSpacing: 12,
                 crossAxisSpacing: 12,
               ),
@@ -335,89 +327,83 @@ final List<Map<String, dynamic>> allProducts = [
               itemBuilder: (context, index) {
                 final item = filteredProducts[index];
 
-              return Card(
-  elevation: 4,
-  shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(15),
-  ),
-  child: Column(
-    children: [
-      // 📌 Responsive Image Height (No overflow)
-      Container(
-        height: MediaQuery.of(context).size.width < 600 ? 110 : 150,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-          image: DecorationImage(
-            image: NetworkImage(item["image"]),
-            fit: BoxFit.cover,
-          ),
-        ),
-      ),
-
-      // 📌 Content area fully flexible
-      Expanded(
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Name
-              Text(
-                item["name"],
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-
-              // Description
-              Text(
-                item["description"],
-                style: const TextStyle(fontSize: 11),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-
-              const Spacer(),  // 👈 Push price/button to bottom
-
-              // Price
-              Text(
-                "₹${item["price"]}",
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.green,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 5),
-
-              // Buy Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                return Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
                   ),
-                  onPressed: () => openBuyLink(item["link"]),
-                  child: const Text("Buy Now", style: TextStyle(fontSize: 13)),
-                ),
-              )
-            ],
-          ),
-        ),
-      ),
-    ],
-  ),
-);
+                  child: Column(
+                    children: [
+                      // Image
+                      Container(
+                        height: MediaQuery.of(context).size.width < 600 ? 110 : 150,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          borderRadius:
+                              const BorderRadius.vertical(top: Radius.circular(15)),
+                          image: DecorationImage(
+                            image: NetworkImage(item["image"]),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
 
+                      // Content area
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item["name"].toString(),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                item["description"].toString(),
+                                style: const TextStyle(fontSize: 11),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const Spacer(),
+                              Text(
+                                "₹${item["price"]}",
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 6),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  onPressed: () => openBuyLink(item["link"]),
+                                  child: Text(tr('market_buy_now'),
+                                      style:
+                                          const TextStyle(fontSize: 13)),
+                                ),
+                              )
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
               },
             ),
           ),

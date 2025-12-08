@@ -2,6 +2,7 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -44,7 +45,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // --- PROFILE DATA LOGIC ---
-
   Future<void> _loadProfile() async {
     final user = _auth.currentUser;
     if (user == null) return;
@@ -73,7 +73,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       debugPrint('Image pick error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to pick image'), backgroundColor: Colors.redAccent),
+          SnackBar(content: Text(tr('failed_pick_image')), backgroundColor: Colors.redAccent),
         );
       }
     }
@@ -103,7 +103,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (user == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Not signed in'), backgroundColor: Colors.redAccent),
+          SnackBar(content: Text(tr('not_signed_in')), backgroundColor: Colors.redAccent),
         );
       }
       return;
@@ -146,7 +146,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: const Text('Profile updated'), backgroundColor: theme.colorScheme.primary),
+        SnackBar(content: Text(tr('profile_updated')), backgroundColor: theme.colorScheme.primary),
       );
 
       // reset picked image and progress
@@ -158,7 +158,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       debugPrint('Save profile error: $e\n$st');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save profile: ${e.toString()}'), backgroundColor: theme.colorScheme.error),
+          SnackBar(content: Text('${tr('failed_save_profile')}: ${e.toString()}'), backgroundColor: theme.colorScheme.error),
         );
       }
     } finally {
@@ -167,7 +167,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // --- UI DIALOGS & HELPERS (Theme Compliant) ---
-
   Future<void> _showImageSourceSheet() async {
     final theme = Theme.of(context);
 
@@ -181,7 +180,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 ListTile(
                   leading: const Icon(Icons.photo_library),
-                  title: Text('Choose from gallery', style: theme.textTheme.bodyLarge),
+                  title: Text(tr('choose_from_gallery'), style: theme.textTheme.bodyLarge),
                   onTap: () {
                     Navigator.pop(sheetContext);
                     _pickImage(ImageSource.gallery);
@@ -189,7 +188,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 ListTile(
                   leading: const Icon(Icons.camera_alt),
-                  title: Text('Take photo', style: theme.textTheme.bodyLarge),
+                  title: Text(tr('take_photo'), style: theme.textTheme.bodyLarge),
                   onTap: () {
                     Navigator.pop(sheetContext);
                     _pickImage(ImageSource.camera);
@@ -198,7 +197,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (_pickedImageFile != null)
                   ListTile(
                     leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                    title: Text('Remove selected image', style: theme.textTheme.bodyLarge?.copyWith(color: Colors.redAccent)),
+                    title: Text(tr('remove_selected_image'), style: theme.textTheme.bodyLarge?.copyWith(color: Colors.redAccent)),
                     onTap: () {
                       Navigator.pop(sheetContext);
                       setState(() => _pickedImageFile = null);
@@ -206,7 +205,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ListTile(
                   leading: const Icon(Icons.close),
-                  title: Text('Cancel', style: theme.textTheme.bodyLarge),
+                  title: Text(tr('cancel'), style: theme.textTheme.bodyLarge),
                   onTap: () => Navigator.pop(sheetContext),
                 ),
               ],
@@ -225,20 +224,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: theme.cardColor,
-        title: Text('Sign out', style: theme.textTheme.titleLarge),
-        content: Text('Are you sure you want to sign out?', style: theme.textTheme.bodyMedium),
+        title: Text(tr('sign_out'), style: theme.textTheme.titleLarge),
+        content: Text(tr('sign_out_confirm'), style: theme.textTheme.bodyMedium),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false), 
-            child: Text('Cancel', style: TextStyle(color: colorScheme.onSurface)),
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(tr('cancel'), style: TextStyle(color: colorScheme.onSurface)),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(dialogContext, true), 
+            onPressed: () => Navigator.pop(dialogContext, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: colorScheme.error,
               foregroundColor: colorScheme.onError,
             ),
-            child: const Text('Sign out'),
+            child: Text(tr('sign_out'), style: const TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -257,10 +256,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return user.displayName!;
     }
     if (_nameCtrl.text.trim().isNotEmpty) return _nameCtrl.text.trim();
-    return 'Farmer';
+    return tr('farmer_default_name');
   }
-
-  // --- BUILD METHOD ---
 
   @override
   Widget build(BuildContext context) {
@@ -273,47 +270,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_pickedImageFile != null) {
       avatarWidget = ClipOval(child: Image.file(_pickedImageFile!, width: 120, height: 120, fit: BoxFit.cover));
     } else if (user?.photoURL != null) {
-      avatarWidget = ClipOval(child: Image.network(user!.photoURL!, width: 120, height: 120, fit: BoxFit.cover, 
-        // Handle network image errors gracefully with a default icon
-        errorBuilder: (context, error, stackTrace) => Icon(Icons.person, size: 60, color: colorScheme.primary.withOpacity(0.5)),
-      ));
-    } else {
       avatarWidget = ClipOval(
-        child: SizedBox(
+        child: Image.network(
+          user!.photoURL!,
           width: 120,
           height: 120,
-          child: Icon(Icons.person, size: 60, color: colorScheme.primary.withOpacity(0.5)),
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Icon(Icons.person, size: 60, color: colorScheme.primary.withOpacity(0.5)),
         ),
+      );
+    } else {
+      avatarWidget = ClipOval(
+        child: SizedBox(width: 120, height: 120, child: Icon(Icons.person, size: 60, color: colorScheme.primary.withOpacity(0.5))),
       );
     }
 
     return Scaffold(
-      // AppBar uses theme primary color and elevation 0 for modern look
       appBar: AppBar(
-        title: Text('Profile', style: theme.textTheme.titleLarge?.copyWith(color: colorScheme.onSurface)),
+        title: Text(tr('profile_title'), style: theme.textTheme.titleLarge?.copyWith(color: colorScheme.onSurface)),
         backgroundColor: colorScheme.surface,
         elevation: 0,
         actions: [
           IconButton(
             onPressed: _confirmSignOut,
             icon: Icon(Icons.logout, color: colorScheme.error),
-            tooltip: 'Sign out',
+            tooltip: tr('sign_out'),
           )
         ],
       ),
-      backgroundColor: theme.scaffoldBackgroundColor, // Theme background color
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20), // Increased padding
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 720),
               child: Column(
                 children: [
-                  // --- 1. Header Card (Avatar & Quick Actions) ---
+                  // Header Card: Avatar & Quick Actions
                   Card(
                     color: theme.cardColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), // Larger radius
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                     elevation: 6,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -324,13 +321,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Stack(
                             alignment: Alignment.bottomRight,
                             children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: colorScheme.surfaceVariant, // Theme surface variant
-                                ),
-                                child: avatarWidget,
-                              ),
+                              Container(decoration: BoxDecoration(shape: BoxShape.circle, color: colorScheme.surfaceVariant), child: avatarWidget),
                               Material(
                                 elevation: 4,
                                 shape: const CircleBorder(),
@@ -347,21 +338,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ],
                           ),
                           const SizedBox(width: 20),
-
-                          // Name + Email + Quick Actions
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  _effectiveDisplayName(user),
-                                  style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-                                ),
+                                Text(_effectiveDisplayName(user), style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
                                 const SizedBox(height: 4),
-                                Text(user?.email ?? 'Guest User', style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withOpacity(0.7))),
+                                Text(user?.email ?? tr('guest_user'), style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withOpacity(0.7))),
                                 const SizedBox(height: 16),
-
-                                // Quick Actions Row
                                 SingleChildScrollView(
                                   scrollDirection: Axis.horizontal,
                                   child: Row(
@@ -369,7 +353,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       ElevatedButton.icon(
                                         onPressed: () => Navigator.pushNamed(context, '/diagnose'),
                                         icon: const Icon(Icons.camera_alt, size: 18),
-                                        label: const Text('Scan Crop'),
+                                        label: Text(tr('scan_crop')),
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: colorScheme.secondary,
                                           foregroundColor: colorScheme.onSecondary,
@@ -381,7 +365,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       OutlinedButton.icon(
                                         onPressed: () => Navigator.pushNamed(context, '/fieldmap'),
                                         icon: Icon(Icons.map_outlined, size: 18, color: colorScheme.primary),
-                                        label: const Text('My Fields'),
+                                        label: Text(tr('my_fields')),
                                         style: OutlinedButton.styleFrom(
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                           side: BorderSide(color: colorScheme.primary.withOpacity(0.5)),
@@ -401,7 +385,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   const SizedBox(height: 24),
 
-                  // --- 2. Edit Form Card ---
+                  // Edit Form Card
                   Card(
                     color: theme.cardColor,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -413,18 +397,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Account Details', style: theme.textTheme.titleLarge),
+                            Text(tr('account_details'), style: theme.textTheme.titleLarge),
                             const SizedBox(height: 20),
 
                             // Name
                             TextFormField(
                               controller: _nameCtrl,
-                              decoration: const InputDecoration(
-                                labelText: 'Full name',
-                                prefixIcon: Icon(Icons.person_outline),
-                              ),
+                              decoration: InputDecoration(labelText: tr('full_name'), prefixIcon: const Icon(Icons.person_outline)),
                               style: theme.textTheme.bodyLarge,
-                              validator: (v) => (v == null || v.trim().length < 2) ? 'Please enter your name' : null,
+                              validator: (v) => (v == null || v.trim().length < 2) ? tr('enter_name') : null,
                             ),
                             const SizedBox(height: 16),
 
@@ -432,12 +413,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             TextFormField(
                               initialValue: user?.email ?? '',
                               enabled: false,
-                              decoration: InputDecoration(
-                                labelText: 'Email (Read-only)',
-                                prefixIcon: const Icon(Icons.email_outlined),
-                                // Ensure disabled field styling is correct
-                                fillColor: colorScheme.surfaceVariant, 
-                              ),
+                              decoration: InputDecoration(labelText: tr('email_readonly'), prefixIcon: const Icon(Icons.email_outlined)),
                               style: theme.textTheme.bodyLarge?.copyWith(color: colorScheme.onSurface.withOpacity(0.6)),
                             ),
                             const SizedBox(height: 16),
@@ -446,32 +422,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             TextFormField(
                               controller: _phoneCtrl,
                               keyboardType: TextInputType.phone,
-                              decoration: const InputDecoration(
-                                labelText: 'Phone (optional)',
-                                prefixIcon: Icon(Icons.phone_outlined),
-                              ),
+                              decoration: InputDecoration(labelText: tr('phone_optional'), prefixIcon: const Icon(Icons.phone_outlined)),
                               style: theme.textTheme.bodyLarge,
-                              validator: (v) => (v != null && v.isNotEmpty && v.replaceAll(RegExp(r'\D'), '').length < 8) ? 'Enter a valid phone' : null,
+                              validator: (v) => (v != null && v.isNotEmpty && v.replaceAll(RegExp(r'\D'), '').length < 8) ? tr('enter_valid_phone') : null,
                             ),
-
                             const SizedBox(height: 24),
 
                             // Progress UI
                             if (_uploadProgress > 0 && _uploadProgress < 1)
                               Column(
                                 children: [
-                                  LinearProgressIndicator(
-                                    value: _uploadProgress, 
-                                    color: colorScheme.secondary,
-                                    backgroundColor: colorScheme.surfaceVariant,
-                                  ),
+                                  LinearProgressIndicator(value: _uploadProgress, color: colorScheme.secondary, backgroundColor: colorScheme.surfaceVariant),
                                   const SizedBox(height: 8),
                                   Align(
                                     alignment: Alignment.centerRight,
-                                    child: Text(
-                                      '${(_uploadProgress * 100).toStringAsFixed(0)}% uploaded',
-                                      style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withOpacity(0.7)),
-                                    ),
+                                    child: Text('${(_uploadProgress * 100).toStringAsFixed(0)}% ${tr('uploaded')}', style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withOpacity(0.7))),
                                   ),
                                   const SizedBox(height: 16),
                                 ],
@@ -483,18 +448,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               height: 50,
                               child: ElevatedButton(
                                 onPressed: _loading ? null : _saveProfile,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: colorScheme.primary,
-                                  foregroundColor: colorScheme.onPrimary,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  elevation: 4,
-                                ),
-                                child: _loading
-                                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                    : const Text('Save Profile', style: TextStyle(fontWeight: FontWeight.w700)),
+                                style: ElevatedButton.styleFrom(backgroundColor: colorScheme.primary, foregroundColor: colorScheme.onPrimary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 4),
+                                child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text(tr('save_profile'), style: const TextStyle(fontWeight: FontWeight.w700)),
                               ),
                             ),
-                            
+
                             const SizedBox(height: 24),
 
                             // Danger Zone: Remove Photo
@@ -502,20 +460,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               alignment: Alignment.centerLeft,
                               child: TextButton(
                                 onPressed: () async {
-                                  // Simplified logic to remove photo from Auth/DB
                                   final doClear = await showDialog<bool>(
                                     context: context,
                                     builder: (dialogContext) => AlertDialog(
                                       backgroundColor: theme.cardColor,
-                                      title: Text('Remove Profile Photo', style: theme.textTheme.titleLarge),
-                                      content: Text('This will remove your profile photo from your account. Continue?', style: theme.textTheme.bodyMedium),
+                                      title: Text(tr('remove_profile_photo'), style: theme.textTheme.titleLarge),
+                                      content: Text(tr('remove_profile_photo_confirm'), style: theme.textTheme.bodyMedium),
                                       actions: [
-                                        TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: Text('Cancel', style: TextStyle(color: colorScheme.onSurface))),
-                                        ElevatedButton(
-                                          onPressed: () => Navigator.pop(dialogContext, true), 
-                                          style: ElevatedButton.styleFrom(backgroundColor: colorScheme.error),
-                                          child: const Text('Remove'),
-                                        ),
+                                        TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: Text(tr('cancel'), style: TextStyle(color: colorScheme.onSurface))),
+                                        ElevatedButton(onPressed: () => Navigator.pop(dialogContext, true), style: ElevatedButton.styleFrom(backgroundColor: colorScheme.error), child: Text(tr('remove'))),
                                       ],
                                     ),
                                   );
@@ -527,13 +480,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       await _db.collection('users').doc(u.uid).set({'photoURL': FieldValue.delete()}, SetOptions(merge: true));
                                       await u.reload();
                                       setState(() {});
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: const Text('Profile photo removed'), backgroundColor: colorScheme.primary),
-                                      );
+                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('profile_photo_removed')), backgroundColor: colorScheme.primary));
                                     }
                                   }
                                 },
-                                child: Text('Remove profile photo from account', style: TextStyle(color: colorScheme.error)),
+                                child: Text(tr('remove_profile_photo_label'), style: TextStyle(color: colorScheme.error)),
                               ),
                             ),
                           ],
@@ -544,7 +495,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   const SizedBox(height: 24),
 
-                  // --- 3. Additional Actions Card ---
+                  // Additional Actions Card
                   Card(
                     color: theme.cardColor,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -555,16 +506,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           ListTile(
                             leading: Icon(Icons.shield_outlined, color: colorScheme.secondary),
-                            title: Text('Privacy & Security', style: theme.textTheme.bodyLarge),
-                            subtitle: Text('Manage data permissions and alerts', style: theme.textTheme.bodyMedium),
+                            title: Text(tr('privacy_security'), style: theme.textTheme.bodyLarge),
+                            subtitle: Text(tr('manage_data_permissions'), style: theme.textTheme.bodyMedium),
                             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                             onTap: () => Navigator.pushNamed(context, '/settings'),
                           ),
                           const Divider(indent: 16, endIndent: 16),
                           ListTile(
                             leading: Icon(Icons.help_outline, color: colorScheme.secondary),
-                            title: Text('Help & Tutorials', style: theme.textTheme.bodyLarge),
-                            subtitle: Text('How to use the app and best practices', style: theme.textTheme.bodyMedium),
+                            title: Text(tr('help_tutorials'), style: theme.textTheme.bodyLarge),
+                            subtitle: Text(tr('how_to_use_app'), style: theme.textTheme.bodyMedium),
                             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                             onTap: () => Navigator.pushNamed(context, '/help'),
                           )

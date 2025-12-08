@@ -7,7 +7,7 @@
 
 
     <application
-        android:label="CropCareAI"
+        android:label="KisanRakshak"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -6,7 +6,7 @@ class ApiConfig {
   static String get baseUrl {
     if (kIsWeb) {
       // Flutter Web always runs on PC browser → use localhost
-      return "http://localhost:5000";
+      return "http://10.92.54.9:5000";
     }
 
     // For mobile / desktop (not web)

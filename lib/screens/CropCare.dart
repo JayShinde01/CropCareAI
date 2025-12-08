@@ -1,4 +1,6 @@
+// lib/screens/cropcare.dart
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class Cropcare extends StatefulWidget {
   const Cropcare({super.key});
@@ -8,8 +10,8 @@ class Cropcare extends StatefulWidget {
 }
 
 class _CropcareState extends State<Cropcare> {
-  // Enhanced wheat disease data structure (Data remains the same)
-  List<Map<String, dynamic>> wheatDiseases = [
+  // disease data (kept as you provided — these are content strings and can be localized later if needed)
+  final List<Map<String, dynamic>> wheatDiseases = [
     {
       "name": "Wheat Rust (Stem, Leaf, Stripe)",
       "image": "https://cs-assets.bayer.com/is/image/bayer/leaf-rust-fungicide-crop-protection",
@@ -20,14 +22,14 @@ class _CropcareState extends State<Cropcare> {
       ],
       "cause": "Fungal infection by Puccinia species (P. graminis, P. triticina, P. striiformis)",
       "symptoms": [
-        "Orange/yellow **rust pustules** on leaves and stems.",
+        "Orange/yellow rust pustules on leaves and stems.",
         "Pustules rupture, releasing powdery spores.",
         "Reduced grain size and shriveled grains.",
         "Stunted growth in severe cases."
       ],
       "prevention": [
-        "Use **rust-resistant varieties** appropriate for your region.",
-        "Apply specialized **fungicides** (e.g., Triazoles) timely.",
+        "Use rust-resistant varieties appropriate for your region.",
+        "Apply specialized fungicides (e.g., Triazoles) timely.",
         "Avoid late sowing, which can increase vulnerability."
       ],
       "severity": "high",
@@ -39,7 +41,7 @@ class _CropcareState extends State<Cropcare> {
         "Some use resistant seeds but still monitor closely during rainy periods."
       ]
     },
-    {
+     {
       "name": "Karnal Bunt (Partial Bunt)",
       "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSgbV5uAtM9AjJ9SbupvfmpdRwTyAhQ4Yo7hA&s",
       "images": [
@@ -150,37 +152,26 @@ class _CropcareState extends State<Cropcare> {
         "Removing wild grasses near fields reduced infection rate."
       ]
     }
+    // ... keep rest of your disease list unchanged (Karnal Bunt, Powdery Mildew, etc.)
   ];
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
-    // We expect the scaffold background and app bar background to be set by the parent Home Screen.
 
     return Scaffold(
-      // The actual app bar is in the parent Scaffold (HomeScreen), 
-      // but we add a title here for standalone testing clarity.
-      // appBar: AppBar(
-      //   title: Text("🌾 Wheat Disease Encyclopedia", style: theme.textTheme.titleLarge),
-      //   backgroundColor: theme.scaffoldBackgroundColor, 
-      //   elevation: 0,
-      // ),
       body: ListView.builder(
         itemCount: wheatDiseases.length,
         itemBuilder: (context, index) {
           final d = wheatDiseases[index];
-          
           return Card(
-            // Use theme card styling
             color: theme.cardColor,
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            elevation: 8, 
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), // Increased radius
+            elevation: 8,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Theme(
               data: theme.copyWith(
-                // Ensure ExpansionTile uses theme icons/colors
                 dividerColor: Colors.transparent,
                 listTileTheme: ListTileThemeData(
                   iconColor: colorScheme.primary,
@@ -188,31 +179,16 @@ class _CropcareState extends State<Cropcare> {
                 ),
               ),
               child: ExpansionTile(
-                tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), // Increased padding
+                tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 collapsedIconColor: colorScheme.onSurface.withOpacity(0.7),
                 iconColor: colorScheme.primary,
-                
-                // --- Leading Image/Icon ---
                 leading: CircleAvatar(
-                  radius: 30, // Larger avatar
+                  radius: 30,
                   backgroundColor: colorScheme.surfaceVariant,
-                  // Use the primary image URL for the thumbnail
-                  backgroundImage: (d["image"] != null)
-                      ? NetworkImage(d["image"])
-                      : null,
-                  // Fallback icon if no image
-                  child: (d["image"] == null)
-                      ? Icon(Icons.agriculture_outlined, size: 30, color: colorScheme.primary)
-                      : null,
+                  backgroundImage: d["image"] != null ? NetworkImage(d["image"]) : null,
+                  child: d["image"] == null ? Icon(Icons.agriculture_outlined, size: 30, color: colorScheme.primary) : null,
                 ),
-                
-                // --- Title ---
-                title: Text(
-                  d["name"] ?? 'Unknown Disease',
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-                ),
-                
-                // --- Subtitle (Severity & Onset) ---
+                title: Text(d["name"] ?? tr('unknown_disease')),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -224,20 +200,14 @@ class _CropcareState extends State<Cropcare> {
                           children: [
                             Icon(Icons.schedule, size: 14, color: colorScheme.onSurface.withOpacity(0.6)),
                             const SizedBox(width: 4),
-                            Text(
-                              d["onset"],
-                              style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withOpacity(0.7)),
-                            ),
+                            Text(d["onset"], style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withOpacity(0.7))),
                           ],
                         ),
                       )
                   ],
                 ),
-                
-                // --- Expanded Content ---
                 childrenPadding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
                 children: [
-                  // Disease Image Gallery (Big Image First)
                   if (d["image"] != null)
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -261,60 +231,51 @@ class _CropcareState extends State<Cropcare> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        // Small thumbnails row is removed for brevity and focus, 
-                        // as the logic for full-screen view is outside the scope of this widget.
                       ],
                     ),
 
-                  // Cause
                   InfoRow(
                     icon: Icons.science_outlined,
-                    title: '🔬 What Causes It?',
-                    content: d["cause"] ?? 'Information not available',
+                    title: tr('causes_title'),
+                    content: d["cause"] ?? tr('not_available'),
                   ),
                   const SizedBox(height: 16),
 
-                  // Symptoms (bullet style for easy reading)
                   InfoRow(
                     icon: Icons.healing_outlined,
-                    title: '🚨 Key Symptoms',
+                    title: tr('symptoms_title'),
                     contentWidget: SymptomsWidget(symptoms: d["symptoms"]),
                   ),
                   const SizedBox(height: 16),
 
-                  // Prevention (numbered steps)
                   InfoRow(
                     icon: Icons.shield_outlined,
-                    title: '✅ How to Prevent It',
+                    title: tr('prevention_title'),
                     contentWidget: PreventionWidget(prevention: d["prevention"]),
                   ),
                   const SizedBox(height: 16),
 
-                  // Treatment steps (if provided show steps)
                   if (d.containsKey("treatment"))
                     InfoRow(
                       icon: Icons.local_hospital_outlined,
-                      title: '🩹 Immediate Treatment Steps',
+                      title: tr('treatment_title'),
                       contentWidget: TreatmentWidget(treatment: d["treatment"]),
                     ),
                   if (d.containsKey("treatment")) const SizedBox(height: 16),
 
-                  // Recommended pesticide & dosage
                   if (d["recommended_pesticide"] != null)
                     InfoRow(
                       icon: Icons.medical_services_outlined,
-                      title: '🛒 Recommended Product',
-                      content:
-                          '${d["recommended_pesticide"]}${d["dosage"] != null ? " — Dosage: ${d["dosage"]}" : ""}',
+                      title: tr('recommended_product'),
+                      content: '${d["recommended_pesticide"]}${d["dosage"] != null ? " — ${tr('dosage')}: ${d["dosage"]}" : ""}',
                     ),
+
                   const SizedBox(height: 20),
 
-                  // Farmer feedback
                   _buildFarmerFeedbackSection(context, d["how_people_handled"]),
-                  
+
                   const SizedBox(height: 16),
-                  
-                  // Action buttons row
+
                   _buildActionButtonsRow(context, d["name"]),
                 ],
               ),
@@ -324,8 +285,6 @@ class _CropcareState extends State<Cropcare> {
       ),
     );
   }
-
-  // --- HELPER WIDGETS (Theme Compliant) ---
 
   Widget _buildSeverityBadge(BuildContext context, String? severity) {
     final theme = Theme.of(context);
@@ -338,51 +297,39 @@ class _CropcareState extends State<Cropcare> {
       case 'high':
         color = theme.colorScheme.error;
         bgColor = theme.colorScheme.error.withOpacity(0.2);
-        label = 'HIGH RISK';
+        label = tr('high_risk');
         break;
       case 'low':
         color = theme.colorScheme.primary;
         bgColor = theme.colorScheme.primary.withOpacity(0.2);
-        label = 'LOW RISK';
+        label = tr('low_risk');
         break;
       case 'moderate':
       default:
         color = theme.colorScheme.secondary;
         bgColor = theme.colorScheme.secondary.withOpacity(0.2);
-        label = 'MODERATE RISK';
+        label = tr('moderate_risk');
         break;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       margin: const EdgeInsets.only(right: 8, top: 4),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
+      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
+      child: Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700)),
     );
   }
-  
+
   Widget _buildFarmerFeedbackSection(BuildContext context, dynamic feedbackList) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
-    final List<String> feedback = (feedbackList is List) 
-        ? feedbackList.map((e) => e.toString()).toList() 
-        : [];
+
+    final List<String> feedback = (feedbackList is List) ? feedbackList.map((e) => e.toString()).toList() : [];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('🧑‍🌾 Farmer Community Feedback', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
+        Text(tr('farmer_feedback_title'), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
         const SizedBox(height: 12),
         if (feedback.isNotEmpty)
           Column(
@@ -390,10 +337,7 @@ class _CropcareState extends State<Cropcare> {
               return Container(
                 margin: const EdgeInsets.symmetric(vertical: 6),
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceVariant, // Theme surface variant for subtle distinction
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                decoration: BoxDecoration(color: colorScheme.surfaceVariant, borderRadius: BorderRadius.circular(10)),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -406,52 +350,41 @@ class _CropcareState extends State<Cropcare> {
             }).toList(),
           )
         else
-          Text(
-            'No community feedback yet. Share your experience to help others!',
-            style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withOpacity(0.6)),
-          ),
+          Text(tr('no_community_feedback'), style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withOpacity(0.6))),
       ],
     );
   }
 
   Widget _buildActionButtonsRow(BuildContext context, String diseaseName) {
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     return Row(
       children: [
         Expanded(
           child: ElevatedButton.icon(
             icon: Icon(Icons.check_circle_outline, color: colorScheme.onPrimary),
-            label: Text('I TRIED THIS', style: TextStyle(color: colorScheme.onPrimary)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colorScheme.primary, // Primary action color
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              elevation: 4,
-            ),
+            label: Text(tr('i_tried'), style: TextStyle(color: colorScheme.onPrimary)),
+            style: ElevatedButton.styleFrom(backgroundColor: colorScheme.primary, padding: const EdgeInsets.symmetric(vertical: 14), elevation: 4),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Marked as tried! Your feedback is valuable.')));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('marked_tried'))));
             },
           ),
         ),
         const SizedBox(width: 10),
         OutlinedButton.icon(
           icon: Icon(Icons.message_outlined, color: colorScheme.secondary),
-          label: const Text('Feedback'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: colorScheme.secondary,
-            side: BorderSide(color: colorScheme.secondary, width: 1.5),
-            padding: const EdgeInsets.symmetric(vertical: 14),
-          ),
+          label: Text(tr('feedback')),
+          style: OutlinedButton.styleFrom(foregroundColor: colorScheme.secondary, side: BorderSide(color: colorScheme.secondary, width: 1.5), padding: const EdgeInsets.symmetric(vertical: 14)),
           onPressed: () => _showFeedbackDialog(context, diseaseName),
         ),
         const SizedBox(width: 10),
         CircleAvatar(
-          backgroundColor: colorScheme.error, // Use error color for urgent action
+          backgroundColor: colorScheme.error,
           child: IconButton(
             icon: Icon(Icons.call, color: colorScheme.onError),
-            tooltip: 'Call Local Agronomist',
+            tooltip: tr('call_local_agronomist'),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('📞 Connecting to expert... (Action placeholder)')));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('connecting_expert'))));
             },
           ),
         )
@@ -462,30 +395,30 @@ class _CropcareState extends State<Cropcare> {
   void _showFeedbackDialog(BuildContext context, String diseaseName) {
     final theme = Theme.of(context);
     final controller = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: theme.cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Share Experience on $diseaseName', style: theme.textTheme.titleLarge),
+        title: Text(tr('share_experience', namedArgs: {'disease': diseaseName})),
         content: TextField(
           controller: controller,
           maxLines: 4,
           style: theme.textTheme.bodyMedium,
-          decoration: InputDecoration(hintText: 'e.g., "Used fungicide, symptoms cleared in 5 days."', fillColor: theme.inputDecorationTheme.fillColor),
+          decoration: InputDecoration(hintText: tr('feedback_example'), fillColor: theme.inputDecorationTheme.fillColor),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: TextStyle(color: theme.colorScheme.onSurface))),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('cancel'), style: TextStyle(color: theme.colorScheme.onSurface))),
           ElevatedButton(
             onPressed: () {
               final text = controller.text.trim();
               if (text.isNotEmpty) {
                 Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Thanks for sharing! Your feedback will help other farmers.')));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('thanks_for_feedback'))));
               }
             },
-            child: const Text('Submit'),
+            child: Text(tr('submit')),
             style: ElevatedButton.styleFrom(backgroundColor: theme.colorScheme.primary),
           )
         ],
@@ -494,41 +427,28 @@ class _CropcareState extends State<Cropcare> {
   }
 }
 
-// -----------------------------
-// Helper widgets (Updated to be theme-compliant)
-// -----------------------------
-
+// Helper widgets (unchanged except they remain UI strings localizable in parent)
 class InfoRow extends StatelessWidget {
   final IconData icon;
   final String title;
   final String? content;
   final Widget? contentWidget;
 
-  const InfoRow({
-    super.key,
-    required this.icon,
-    required this.title,
-    this.content,
-    this.contentWidget,
-  });
+  const InfoRow({super.key, required this.icon, required this.title, this.content, this.contentWidget});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
-    final Widget body = contentWidget ??
-        Text(
-          content ?? 'Not available',
-          style: theme.textTheme.bodyMedium,
-        );
+
+    final Widget body = contentWidget ?? Text(content ?? tr('not_available'), style: theme.textTheme.bodyMedium);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: colorScheme.primary), // Use Primary color for icons
+          Icon(icon, size: 20, color: colorScheme.primary),
           const SizedBox(width: 10),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -551,10 +471,10 @@ class SymptomsWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
+
     final List<String> bullets = [];
     if (symptoms == null) {
-      bullets.add('No information available');
+      bullets.add(tr('not_available'));
     } else if (symptoms is List) {
       bullets.addAll((symptoms as List).map((e) => e.toString().trim()).where((s) => s.isNotEmpty));
     }
@@ -564,7 +484,7 @@ class SymptomsWidget extends StatelessWidget {
       children: bullets.map((b) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 2),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('• ', style: TextStyle(fontSize: 16, color: colorScheme.secondary)), // Use secondary color for bullets
+          Text('• ', style: TextStyle(fontSize: 16, color: colorScheme.secondary)),
           Expanded(child: Text(b, style: theme.textTheme.bodyMedium)),
         ]),
       )).toList(),
@@ -580,10 +500,10 @@ class PreventionWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
+
     final List<String> steps = [];
     if (prevention == null) {
-      steps.add('Not available');
+      steps.add(tr('not_available'));
     } else if (prevention is List) {
       steps.addAll((prevention as List).map((e) => e.toString().trim()).where((s) => s.isNotEmpty));
     }
@@ -603,7 +523,6 @@ class PreventionWidget extends StatelessWidget {
                 height: 26,
                 decoration: BoxDecoration(color: colorScheme.primary.withOpacity(0.2), borderRadius: BorderRadius.circular(6)),
                 alignment: Alignment.center,
-                // Use theme primary color for step number
                 child: Text('$idx', style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(width: 8),
@@ -627,7 +546,7 @@ class TreatmentWidget extends StatelessWidget {
 
     final List<String> steps = [];
     if (treatment == null) {
-      steps.add('No treatment info');
+      steps.add(tr('not_available'));
     } else if (treatment is List) {
       steps.addAll((treatment as List).map((e) => e.toString().trim()).where((s) => s.isNotEmpty));
     }
@@ -642,7 +561,6 @@ class TreatmentWidget extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Distinct styling for urgent steps (Treatment)
               CircleAvatar(radius: 12, backgroundColor: colorScheme.error.withOpacity(0.2), child: Text('$idx', style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.error, fontWeight: FontWeight.w600))),
               const SizedBox(width: 10),
               Expanded(child: Text(txt, style: theme.textTheme.bodyMedium)),

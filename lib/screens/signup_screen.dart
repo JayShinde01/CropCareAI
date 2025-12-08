@@ -1,6 +1,7 @@
 // lib/screens/signup_screen.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 import '../services/auth_service.dart';
 
@@ -51,15 +52,10 @@ class _SignupScreenState extends State<SignupScreen> {
     _phoneFocus.dispose();
     _passwordFocus.dispose();
     _confirmFocus.dispose();
-    // NOTE: Don't dispose of listener as it's disposed with the controller.
     super.dispose();
   }
 
-  // -------------------------------------------------------------
-  // --- PASSWORD STRENGTH LOGIC (UPDATED COLORS TO BE THEME-AWARE) ---
-  // -------------------------------------------------------------
-
-  // Simple password strength estimator (returns 0..4)
+  // --- password strength ---
   int _passwordStrengthScore(String p) {
     int score = 0;
     if (p.length >= 6) score++;
@@ -74,17 +70,16 @@ class _SignupScreenState extends State<SignupScreen> {
     switch (s) {
       case 0:
       case 1:
-        return 'Weak';
+        return tr('strength_weak');
       case 2:
-        return 'Fair';
+        return tr('strength_fair');
       case 3:
-        return 'Good';
+        return tr('strength_good');
       default:
-        return 'Strong';
+        return tr('strength_strong');
     }
   }
 
-  // Uses context to grab primary color for 'Strong' state
   Color _strengthColor(int s, BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     switch (s) {
@@ -94,9 +89,9 @@ class _SignupScreenState extends State<SignupScreen> {
       case 2:
         return Colors.orange;
       case 3:
-        return colorScheme.secondary; // Use theme accent color for 'Good'
+        return colorScheme.secondary;
       default:
-        return colorScheme.primary; // Use theme primary color for 'Strong'
+        return colorScheme.primary;
     }
   }
 
@@ -107,16 +102,13 @@ class _SignupScreenState extends State<SignupScreen> {
     if (mounted) setState(() => _currentStrength = score);
   }
 
-  // -------------------------------------------------------------
-  // --- AUTH LOGIC ---
-  // -------------------------------------------------------------
-
+  // --- auth logic ---
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
 
     if (!_formKey.currentState!.validate()) return;
     if (!_acceptTerms) {
-      _showError('Please accept Terms & Conditions to continue.');
+      _showError(tr('accept_terms_required'));
       return;
     }
 
@@ -138,13 +130,13 @@ class _SignupScreenState extends State<SignupScreen> {
       if (!mounted) return;
       _showSuccessAndNavigate(cred.user);
     } on FirebaseAuthException catch (e) {
-      String message = e.message ?? 'Signup failed. Please try again.';
+      String message = tr('signup_failed_generic');
       if (e.code == 'email-already-in-use') {
-        message = 'Email already in use. Try logging in or reset your password.';
+        message = tr('email_already_in_use');
       } else if (e.code == 'weak-password') {
-        message = 'Password is too weak. Use 6+ characters.';
+        message = tr('weak_password');
       } else if (e.code == 'invalid-email') {
-        message = 'Invalid email address.';
+        message = tr('invalid_email');
       }
       _showError(message);
     } catch (e) {
@@ -171,11 +163,9 @@ class _SignupScreenState extends State<SignupScreen> {
       builder: (_) => AlertDialog(
         backgroundColor: theme.cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Welcome', style: theme.textTheme.titleLarge),
+        title: Text(tr('welcome'), style: theme.textTheme.titleLarge),
         content: Text(
-          user == null
-              ? 'Signed up successfully'
-              : 'Signed up as: ${user.email}',
+          user == null ? tr('signup_success') : tr('signup_as_email', namedArgs: {'email': user.email ?? ''}),
           style: theme.textTheme.bodyMedium,
         ),
         actions: [
@@ -184,7 +174,7 @@ class _SignupScreenState extends State<SignupScreen> {
               Navigator.pop(context);
               Navigator.pushReplacementNamed(context, '/home');
             },
-            child: Text('Continue', style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.bold)),
+            child: Text(tr('continue'), style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.bold)),
           )
         ],
       ),
@@ -199,47 +189,36 @@ class _SignupScreenState extends State<SignupScreen> {
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/home');
       } else {
-        _showError('Google signup cancelled');
+        _showError(tr('google_signup_cancelled'));
       }
     } catch (e) {
-      _showError('Google signup failed: ${e.toString()}');
+      _showError(tr('google_signup_failed', namedArgs: {'msg': e.toString()}));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  void _signupWithPhone() {
-    Navigator.pushNamed(context, '/phone');
-  }
+  void _signupWithPhone() => Navigator.pushNamed(context, '/phone');
 
   void _onAvatarTap() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Avatar picker not implemented — add image picker here')),
+      SnackBar(content: Text(tr('avatar_picker_not_implemented'))),
     );
   }
 
-  // -------------------------------------------------------------
-  // --- UI BUILDER (THEME INTEGRATION) ---
-  // -------------------------------------------------------------
-
+  // --- UI ---
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
-    // NOTE: Removed hardcoded colors: primaryGreen, accent, canvas
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      // AppBar is now flat and uses theme colors
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: Icon(Icons.arrow_back, color: colorScheme.onBackground),
-        ),
-        title: Text('Create account', style: theme.textTheme.titleLarge?.copyWith(color: colorScheme.onBackground)),
+        leading: IconButton(onPressed: () => Navigator.pop(context), icon: Icon(Icons.arrow_back, color: colorScheme.onBackground)),
+        title: Text(tr('create_account'), style: theme.textTheme.titleLarge?.copyWith(color: colorScheme.onBackground)),
         centerTitle: true,
       ),
       body: SafeArea(
@@ -250,45 +229,24 @@ class _SignupScreenState extends State<SignupScreen> {
               constraints: const BoxConstraints(maxWidth: 540),
               child: Column(
                 children: [
-                  // --- Header Card: Vibrant Gradient ---
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                     decoration: BoxDecoration(
-                      // Uses theme primary and secondary colors
-                      gradient: LinearGradient(
-                          colors: [colorScheme.primary, colorScheme.secondary],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight),
+                      gradient: LinearGradient(colors: [colorScheme.primary, colorScheme.secondary], begin: Alignment.topLeft, end: Alignment.bottomRight),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [BoxShadow(color: colorScheme.primary.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))],
                     ),
                     child: Row(
                       children: [
-                        CircleAvatar(
-                          radius: 24,
-                          // Ensures avatar background contrasts the gradient
-                          backgroundColor: colorScheme.onPrimary, 
-                          child: Icon(Icons.eco, color: colorScheme.primary, size: 28),
-                        ),
+                        CircleAvatar(radius: 24, backgroundColor: colorScheme.onPrimary, child: Icon(Icons.eco, color: colorScheme.primary, size: 28)),
                         const SizedBox(width: 14),
-                        Expanded(
-                          child: Text(
-                            'Create your Free Account',
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              color: colorScheme.onPrimary,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 18,
-                            ),
-                          ),
-                        ),
+                        Expanded(child: Text(tr('create_account_header'), style: theme.textTheme.titleLarge?.copyWith(color: colorScheme.onPrimary, fontWeight: FontWeight.w800, fontSize: 18))),
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 24),
 
-                  // --- Form Card ---
                   Card(
                     elevation: 6,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -298,17 +256,12 @@ class _SignupScreenState extends State<SignupScreen> {
                         key: _formKey,
                         child: Column(
                           children: [
-                            // Avatar / name row
                             Row(
                               children: [
                                 InkWell(
                                   onTap: _onAvatarTap,
                                   borderRadius: BorderRadius.circular(50),
-                                  child: CircleAvatar(
-                                    radius: 30,
-                                    backgroundColor: colorScheme.surfaceVariant, // Theme compliant background
-                                    child: Icon(Icons.camera_alt_outlined, color: colorScheme.primary),
-                                  ),
+                                  child: CircleAvatar(radius: 30, backgroundColor: colorScheme.surfaceVariant, child: Icon(Icons.camera_alt_outlined, color: colorScheme.primary)),
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
@@ -316,154 +269,107 @@ class _SignupScreenState extends State<SignupScreen> {
                                     controller: _nameCtrl,
                                     focusNode: _nameFocus,
                                     textInputAction: TextInputAction.next,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Full name',
-                                      prefixIcon: Icon(Icons.person_outline),
-                                    ),
+                                    decoration: InputDecoration(labelText: tr('full_name'), prefixIcon: const Icon(Icons.person_outline)),
                                     style: theme.textTheme.bodyLarge,
-                                    validator: (v) => (v == null || v.trim().length < 2) ? 'Please enter your name' : null,
+                                    validator: (v) => (v == null || v.trim().length < 2) ? tr('please_enter_name') : null,
                                     onFieldSubmitted: (_) => _emailFocus.requestFocus(),
                                   ),
                                 ),
                               ],
                             ),
-
                             const SizedBox(height: 16),
 
-                            // Email
                             TextFormField(
                               controller: _emailCtrl,
                               focusNode: _emailFocus,
                               textInputAction: TextInputAction.next,
                               keyboardType: TextInputType.emailAddress,
-                              decoration: const InputDecoration(
-                                labelText: 'Email address',
-                                prefixIcon: Icon(Icons.email_outlined),
-                              ),
+                              decoration: InputDecoration(labelText: tr('email_address'), prefixIcon: const Icon(Icons.email_outlined)),
                               style: theme.textTheme.bodyLarge,
-                              validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter email' : (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(v.trim()) ? 'Enter a valid email' : null),
+                              validator: (v) => (v == null || v.trim().isEmpty) ? tr('please_enter_email') : (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(v.trim()) ? tr('enter_valid_email') : null),
                               onFieldSubmitted: (_) => _phoneFocus.requestFocus(),
                             ),
-
                             const SizedBox(height: 16),
 
-                            // Phone (optional)
                             TextFormField(
                               controller: _phoneCtrl,
                               focusNode: _phoneFocus,
                               textInputAction: TextInputAction.next,
                               keyboardType: TextInputType.phone,
-                              decoration: const InputDecoration(
-                                hintText: 'Phone (optional)',
-                                labelText: "Phone Number",
-                                prefixIcon: Icon(Icons.phone_outlined),
-                              ),
+                              decoration: InputDecoration(labelText: tr('phone_number'), hintText: tr('phone_optional'), prefixIcon: const Icon(Icons.phone_outlined)),
                               style: theme.textTheme.bodyLarge,
-                              validator: (v) => (v != null && v.isNotEmpty && v.replaceAll(RegExp(r'\D'), '').length < 8) ? 'Enter a valid phone' : null,
+                              validator: (v) => (v != null && v.isNotEmpty && v.replaceAll(RegExp(r'\D'), '').length < 8) ? tr('enter_valid_phone') : null,
                               onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
                             ),
-
                             const SizedBox(height: 16),
 
-                            // Password
                             TextFormField(
                               controller: _passwordCtrl,
                               focusNode: _passwordFocus,
                               obscureText: _obscurePassword,
                               textInputAction: TextInputAction.next,
                               decoration: InputDecoration(
-                                labelText: 'Create a password',
+                                labelText: tr('create_password'),
                                 prefixIcon: const Icon(Icons.lock_outline),
-                                suffixIcon: IconButton(
-                                  icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                                ),
+                                suffixIcon: IconButton(icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscurePassword = !_obscurePassword)),
                               ),
                               style: theme.textTheme.bodyLarge,
-                              validator: (v) => (v == null || v.length < 6) ? 'Password must be at least 6 characters' : null,
+                              validator: (v) => (v == null || v.length < 6) ? tr('password_min_chars') : null,
                               onFieldSubmitted: (_) => _confirmFocus.requestFocus(),
                             ),
-
                             const SizedBox(height: 8),
 
-                            // Password strength bar & label
                             Row(
                               children: [
                                 Expanded(
                                   child: Container(
                                     height: 8,
-                                    decoration: BoxDecoration(
-                                      color: colorScheme.surfaceVariant, // Theme-aware background for bar
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
+                                    decoration: BoxDecoration(color: colorScheme.surfaceVariant, borderRadius: BorderRadius.circular(6)),
                                     child: FractionallySizedBox(
                                       alignment: Alignment.centerLeft,
                                       widthFactor: (_currentStrength / 4).clamp(0.0, 1.0),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: _strengthColor(_currentStrength, context), // Dynamic color
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                      ),
+                                      child: Container(decoration: BoxDecoration(color: _strengthColor(_currentStrength, context), borderRadius: BorderRadius.circular(6))),
                                     ),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
-                                Text(
-                                  _strengthLabel(_currentStrength),
-                                  style: TextStyle(color: _strengthColor(_currentStrength, context), fontWeight: FontWeight.w700),
-                                )
+                                Text(_strengthLabel(_currentStrength), style: TextStyle(color: _strengthColor(_currentStrength, context), fontWeight: FontWeight.w700))
                               ],
                             ),
 
                             const SizedBox(height: 16),
 
-                            // Confirm password
                             TextFormField(
                               controller: _confirmCtrl,
                               focusNode: _confirmFocus,
                               obscureText: _obscureConfirm,
                               textInputAction: TextInputAction.done,
                               decoration: InputDecoration(
-                                labelText: 'Confirm password',
+                                labelText: tr('confirm_password'),
                                 prefixIcon: const Icon(Icons.lock),
-                                suffixIcon: IconButton(
-                                  icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility),
-                                  onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
-                                ),
+                                suffixIcon: IconButton(icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm)),
                               ),
                               style: theme.textTheme.bodyLarge,
-                              validator: (v) => (v == null || v.isEmpty) ? 'Confirm your password' : (v != _passwordCtrl.text ? 'Passwords do not match' : null),
+                              validator: (v) => (v == null || v.isEmpty) ? tr('confirm_your_password') : (v != _passwordCtrl.text ? tr('passwords_not_match') : null),
                               onFieldSubmitted: (_) => _submit(),
                             ),
 
                             const SizedBox(height: 16),
 
-                            // Terms checkbox
                             Row(
                               children: [
-                                Checkbox(
-                                  value: _acceptTerms,
-                                  activeColor: colorScheme.primary, // Theme primary
-                                  onChanged: (v) => setState(() => _acceptTerms = v ?? false),
-                                ),
+                                Checkbox(value: _acceptTerms, activeColor: colorScheme.primary, onChanged: (v) => setState(() => _acceptTerms = v ?? false)),
                                 Expanded(
                                   child: GestureDetector(
                                     onTap: () => setState(() => _acceptTerms = !_acceptTerms),
                                     child: RichText(
                                       text: TextSpan(
-                                        text: 'I agree to the ',
+                                        text: tr('i_agree_prefix'),
                                         style: theme.textTheme.bodyMedium,
                                         children: [
-                                          TextSpan(
-                                            text: 'Terms & Conditions',
-                                            style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.w700),
-                                          ),
-                                          const TextSpan(text: ' and '),
-                                          TextSpan(
-                                            text: 'Privacy Policy',
-                                            style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.w700),
-                                          ),
+                                          TextSpan(text: tr('terms_and_conditions'), style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.w700)),
+                                          TextSpan(text: ' ${tr('and')} '),
+                                          TextSpan(text: tr('privacy_policy'), style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.w700)),
                                         ],
                                       ),
                                     ),
@@ -474,87 +380,42 @@ class _SignupScreenState extends State<SignupScreen> {
 
                             const SizedBox(height: 20),
 
-                            // Signup button
                             SizedBox(
                               width: double.infinity,
                               height: 50,
                               child: ElevatedButton(
                                 onPressed: _loading ? null : _submit,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: colorScheme.primary, // Theme primary
-                                  foregroundColor: colorScheme.onPrimary,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  elevation: 3,
-                                ),
-                                child: _loading
-                                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                    : const Text('CREATE ACCOUNT', style: TextStyle(fontWeight: FontWeight.bold)),
+                                style: ElevatedButton.styleFrom(backgroundColor: colorScheme.primary, foregroundColor: colorScheme.onPrimary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 3),
+                                child: _loading ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: colorScheme.onPrimary)) : Text(tr('create_account_button'), style: const TextStyle(fontWeight: FontWeight.bold)),
                               ),
                             ),
 
                             const SizedBox(height: 20),
 
-                            // OR divider
-                            Row(
-                              children: [
-                                Expanded(child: Divider(color: colorScheme.onSurface.withOpacity(0.3))),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                                  child: Text('OR', style: TextStyle(color: colorScheme.onSurface.withOpacity(0.7), fontWeight: FontWeight.w500)),
-                                ),
-                                Expanded(child: Divider(color: colorScheme.onSurface.withOpacity(0.3))),
-                              ],
-                            ),
+                            Row(children: [Expanded(child: Divider(color: colorScheme.onSurface.withOpacity(0.3))), Padding(padding: const EdgeInsets.symmetric(horizontal: 12.0), child: Text(tr('or'), style: TextStyle(color: colorScheme.onSurface.withOpacity(0.7), fontWeight: FontWeight.w500))), Expanded(child: Divider(color: colorScheme.onSurface.withOpacity(0.3)))]),
 
                             const SizedBox(height: 20),
 
-                            // Social / phone options
                             Row(
                               children: [
                                 Expanded(
                                   child: OutlinedButton.icon(
                                     onPressed: _loading ? null : _signupWithGoogle,
-                                    icon: Image.asset(
-                                      'assets/images/google_logo.jpg',
-                                      width: 20,
-                                      height: 20,
-                                      errorBuilder: (_, __, ___) => Icon(Icons.public, color: colorScheme.primary),
-                                    ),
-                                    label: const Text('Google'),
-                                    style: OutlinedButton.styleFrom(
-                                      backgroundColor: theme.brightness == Brightness.dark ? colorScheme.surfaceVariant : Colors.white,
-                                      foregroundColor: colorScheme.onSurface,
-                                      side: BorderSide(color: colorScheme.onSurface.withOpacity(0.2)),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    ),
+                                    icon: Image.asset('assets/images/google_logo.jpg', width: 20, height: 20, errorBuilder: (_, __, ___) => Icon(Icons.public, color: colorScheme.primary)),
+                                    label: Text(tr('google')),
+                                    style: OutlinedButton.styleFrom(backgroundColor: theme.brightness == Brightness.dark ? colorScheme.surfaceVariant : Colors.white, foregroundColor: colorScheme.onSurface, side: BorderSide(color: colorScheme.onSurface.withOpacity(0.2)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
-                                
                               ],
                             ),
 
                             const SizedBox(height: 20),
 
-                            // login link
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text('Already have an account? ', style: theme.textTheme.bodyMedium),
-                                TextButton(
-                                  onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
-                                  child: Text('Log in', style: TextStyle(color: colorScheme.secondary, fontWeight: FontWeight.bold)),
-                                ),
-                              ],
-                            ),
-                            
-                             const SizedBox(height: 6),
-                            // Microcopy
-                            Text(
-                              "We keep data private — used only for alerts and personalized content.",
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withOpacity(0.6)),
-                            ),
+                            Row(mainAxisAlignment: MainAxisAlignment.center, children: [Text(tr('already_have_account'), style: theme.textTheme.bodyMedium), TextButton(onPressed: () => Navigator.pushReplacementNamed(context, '/login'), child: Text(tr('log_in'), style: TextStyle(color: colorScheme.secondary, fontWeight: FontWeight.bold)))]),
+
+                            const SizedBox(height: 6),
+                            Text(tr('privacy_microcopy'), textAlign: TextAlign.center, style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withOpacity(0.6))),
                           ],
                         ),
                       ),

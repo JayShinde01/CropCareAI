@@ -1,5 +1,6 @@
 // lib/screens/notification.dart
 import 'package:demo/main.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 class NotificationPage extends StatefulWidget {
@@ -12,13 +13,13 @@ class NotificationPage extends StatefulWidget {
 class _NotificationPageState extends State<NotificationPage> {
   // Sample notifications (replace with real source if needed)
   List<Map<String, dynamic>> notifications = [
-    {"id": "n1", "title": "Payment received successfully!", "type": "success", "time": "2 min ago", "isRead": false},
-    {"id": "n2", "title": "New system update available", "type": "update", "time": "10 min ago", "isRead": false},
-    {"id": "n3", "title": "Your order is being processed", "type": "order", "time": "20 min ago", "isRead": false},
-    {"id": "n4", "title": "🔥 50% off discount is live!", "type": "offer", "time": "1 hr ago", "isRead": true},
-    {"id": "n5", "title": "New message from support team", "type": "message", "time": "2 hrs ago", "isRead": false},
-    {"id": "n6", "title": "Field inspection report ready", "type": "report", "time": "1 day ago", "isRead": true},
-    {"id": "n7", "title": "Low stock warning: Fertilizer X", "type": "warning", "time": "2 days ago", "isRead": true},
+    {"id": "n1", "title": "payment_received_success", "type": "success", "time": "2 min ago", "isRead": false},
+    {"id": "n2", "title": "new_system_update_available", "type": "update", "time": "10 min ago", "isRead": false},
+    {"id": "n3", "title": "order_processed", "type": "order", "time": "20 min ago", "isRead": false},
+    {"id": "n4", "title": "offer_50_off", "type": "offer", "time": "1 hr ago", "isRead": true},
+    {"id": "n5", "title": "new_message_support", "type": "message", "time": "2 hrs ago", "isRead": false},
+    {"id": "n6", "title": "field_inspection_ready", "type": "report", "time": "1 day ago", "isRead": true},
+    {"id": "n7", "title": "low_stock_warning", "type": "warning", "time": "2 days ago", "isRead": true},
   ];
 
   // UI state
@@ -46,7 +47,6 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 
   Color _colorFor(String type, ThemeData theme) {
-    // Use theme-aware colors where possible; fall back to tints
     switch (type) {
       case "success":
         return Colors.green.shade600;
@@ -70,7 +70,7 @@ class _NotificationPageState extends State<NotificationPage> {
   void _markAllRead() {
     final hasUnread = notifications.any((n) => n['isRead'] == false);
     if (!hasUnread) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('All notifications already read')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('all_already_read'.tr())));
       return;
     }
     setState(() {
@@ -78,7 +78,7 @@ class _NotificationPageState extends State<NotificationPage> {
         n['isRead'] = true;
       }
     });
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('All notifications marked as read')));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('all_marked_read'.tr())));
   }
 
   void _removeAtIndex(int index, Map<String, dynamic> removed) {
@@ -88,9 +88,9 @@ class _NotificationPageState extends State<NotificationPage> {
     final theme = Theme.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Notification dismissed'),
+        content: Text('notification_dismissed'.tr()),
         action: SnackBarAction(
-          label: 'Undo',
+          label: 'undo'.tr(),
           textColor: theme.colorScheme.primary,
           onPressed: () {
             setState(() {
@@ -118,11 +118,11 @@ class _NotificationPageState extends State<NotificationPage> {
       appBar: AppBar(
         backgroundColor: AgrioDemoApp.primaryGreen,
         elevation: theme.appBarTheme.elevation ?? 2,
-        title: Text('Notifications', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+        title: Text('notifications_title'.tr(), style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
         actions: [
           IconButton(
             onPressed: _markAllRead,
-            tooltip: 'Mark all as read',
+            tooltip: 'mark_all_read'.tr(),
             icon: Icon(Icons.mark_email_read_rounded, color: iconColor),
           ),
           PopupMenuButton<String>(
@@ -140,11 +140,11 @@ class _NotificationPageState extends State<NotificationPage> {
                   children: [
                     Checkbox(value: showOnlyUnread, onChanged: (_) {}, activeColor: colorScheme.primary),
                     const SizedBox(width: 6),
-                    const Expanded(child: Text('Show only unread')),
+                    Expanded(child: Text('show_only_unread'.tr())),
                   ],
                 ),
               ),
-              const PopupMenuItem(value: 'clear', child: Text('Clear all notifications')),
+              PopupMenuItem(value: 'clear', child: Text('clear_all'.tr())),
             ],
           ),
         ],
@@ -153,7 +153,9 @@ class _NotificationPageState extends State<NotificationPage> {
           child: Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
             child: Text(
-              unreadCount > 0 ? '$unreadCount unread' : 'You are all caught up',
+              unreadCount > 0
+                  ? tr('unread_count', namedArgs: {'count': unreadCount.toString()})
+                  : 'all_caught_up'.tr(),
               style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onPrimary.withOpacity(0.9)),
             ),
           ),
@@ -167,7 +169,7 @@ class _NotificationPageState extends State<NotificationPage> {
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, i) {
                 final n = filtered[i];
-                final title = n['title'] as String;
+                final titleKey = n['title'] as String;
                 final time = n['time'] as String;
                 final type = n['type'] as String;
                 final isRead = n['isRead'] as bool;
@@ -206,7 +208,6 @@ class _NotificationPageState extends State<NotificationPage> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            // Icon circle
                             Container(
                               width: 50,
                               height: 50,
@@ -214,14 +215,15 @@ class _NotificationPageState extends State<NotificationPage> {
                               child: Icon(icon, color: color, size: 26),
                             ),
                             const SizedBox(width: 14),
-
-                            // Text content
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    title,
+                                    // Use tr for the title keys (titleKey may be plain text too)
+                                    (titleKey.startsWith(RegExp(r'[a-z_]+$')))
+                                        ? tr(titleKey)
+                                        : titleKey,
                                     style: theme.textTheme.bodyMedium?.copyWith(
                                       fontSize: 15,
                                       fontWeight: isRead ? FontWeight.w500 : FontWeight.w700,
@@ -233,8 +235,6 @@ class _NotificationPageState extends State<NotificationPage> {
                                 ],
                               ),
                             ),
-
-                            // Right-side indicator
                             Padding(
                               padding: const EdgeInsets.only(left: 8.0),
                               child: isRead
@@ -249,11 +249,10 @@ class _NotificationPageState extends State<NotificationPage> {
                 );
               },
             ),
-      // quick action FAB to mark all read
       floatingActionButton: notifications.isNotEmpty
           ? FloatingActionButton.extended(
               onPressed: _markAllRead,
-              label: Text('Mark all read', style: TextStyle(color: Colors.black),),
+              label: Text('mark_all_read'.tr(), style: const TextStyle(color: Colors.black)),
               icon: Icon(Icons.mark_email_read_rounded, color: colorScheme.onSecondary),
               backgroundColor: colorScheme.secondary,
             )
@@ -270,10 +269,10 @@ class _NotificationPageState extends State<NotificationPage> {
           children: [
             Icon(Icons.notifications_off, size: 68, color: theme.disabledColor),
             const SizedBox(height: 16),
-            Text('No notifications', style: theme.textTheme.titleLarge?.copyWith(fontSize: 20, fontWeight: FontWeight.w700)),
+            Text('no_notifications'.tr(), style: theme.textTheme.titleLarge?.copyWith(fontSize: 20, fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             Text(
-              'You are all caught up. We will show important alerts here — reminders, offers, reports and messages.',
+              'notifications_empty_desc'.tr(),
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(color: theme.disabledColor),
             ),
@@ -284,7 +283,7 @@ class _NotificationPageState extends State<NotificationPage> {
                 Navigator.pop(context);
               },
               icon: Icon(Icons.home_outlined, color: colorScheme.onPrimary),
-              label: Text('Go to Home', style: theme.textTheme.labelLarge?.copyWith(color: colorScheme.onPrimary)),
+              label: Text('go_home'.tr(), style: theme.textTheme.labelLarge?.copyWith(color: colorScheme.onPrimary)),
               style: ElevatedButton.styleFrom(backgroundColor: colorScheme.primary),
             ),
           ],

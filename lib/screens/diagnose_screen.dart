@@ -12,6 +12,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../api_config.dart';
 
 class DiagnoseScreen extends StatefulWidget {
@@ -50,7 +51,6 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
   @override
   void initState() {
     super.initState();
-    // Use ApiConfig.baseUrl if provided; otherwise fallback to localhost.
     final base = (ApiConfig.baseUrl != null && ApiConfig.baseUrl!.isNotEmpty)
         ? ApiConfig.baseUrl!
         : 'http://localhost:5000';
@@ -58,7 +58,7 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
     API_PREDICT = '$API_BASE/api/predict';
     API_HISTORY = '$API_BASE/api/history';
 
-    _loadHistory(); // will gracefully handle missing endpoint
+    _loadHistory();
   }
 
   // ---------------- IMAGE PICK + PREVIEW ----------------
@@ -107,9 +107,9 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
     } catch (e, st) {
       debugPrint('Image pick error: $e\n$st');
       if (!mounted) return;
-      setState(() => _error = "Failed to pick image: $e");
+      setState(() => _error = tr('failed_pick_image', args: [e.toString()]));
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to pick image: $e'), backgroundColor: Theme.of(context).colorScheme.error),
+        SnackBar(content: Text(tr('failed_pick_image', args: [e.toString()])), backgroundColor: Theme.of(context).colorScheme.error),
       );
     }
   }
@@ -131,13 +131,13 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: theme.cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Center(child: Text('Confirm Photo', style: theme.textTheme.titleLarge)),
+        title: Center(child: Text(tr('confirm_photo'), style: theme.textTheme.titleLarge)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ClipRRect(borderRadius: BorderRadius.circular(12), child: previewWidget),
             const SizedBox(height: 12),
-            Text('Is the photo clear and focused on the affected area?', textAlign: TextAlign.center, style: theme.textTheme.bodyMedium),
+            Text(tr('confirm_photo_question'), textAlign: TextAlign.center, style: theme.textTheme.bodyMedium),
           ],
         ),
         actions: [
@@ -150,14 +150,14 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
                 _lastPickedFileName = null;
               });
             },
-            child: const Text('Retake'),
+            child: Text(tr('retake')),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
               _startUploadProcess();
             },
-            child: const Text('Diagnose'),
+            child: Text(tr('diagnose_button')),
           ),
         ],
       ),
@@ -168,7 +168,7 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
   Future<void> _startUploadProcess() async {
     if (_isUploading) return;
     if (_lastPickedFile == null && _lastPickedBytes == null) {
-      setState(() => _error = "No image selected.");
+      setState(() => _error = tr('no_image_selected'));
       return;
     }
 
@@ -181,7 +181,7 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Uploading image for diagnosis...'), duration: Duration(seconds: 2)),
+      SnackBar(content: Text(tr('uploading_diagnosis')), duration: const Duration(seconds: 2)),
     );
 
     try {
@@ -204,7 +204,6 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
       } else {
         final file = _lastPickedFile!;
         final filename = _lastPickedFileName ?? file.path.split(Platform.pathSeparator).last;
-        // include content type automatically by fromPath
         request.files.add(await http.MultipartFile.fromPath('file', file.path, filename: filename));
       }
 
@@ -226,32 +225,30 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
       final imageUrl = jsonBody['image_url'] ?? jsonBody['image'] ?? jsonBody['file_url'] ?? jsonBody['filename'];
 
       setState(() {
-        _predictionLabel = result ?? 'Unknown';
+        _predictionLabel = result ?? tr('unknown');
         _predictionConfidence = confidence ?? 0.0;
         if (imageUrl == null) {
           _predictionImageUrl = null;
         } else if (imageUrl.toString().startsWith('http')) {
           _predictionImageUrl = imageUrl.toString();
         } else {
-          // ensure leading slash
           final s = imageUrl.toString();
           _predictionImageUrl = s.startsWith('/') ? API_BASE + s : API_BASE + '/' + s;
         }
       });
 
-      // try to refresh history but ignore failures
       await _loadHistory();
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Diagnosis: ${_predictionLabel ?? "Unknown"} (${_predictionConfidence?.toStringAsFixed(2) ?? "0"}%)')),
+        SnackBar(content: Text('${tr('diagnosis')}: ${_predictionLabel ?? tr('unknown')} (${(_predictionConfidence ?? 0.0).toStringAsFixed(2)}%)')),
       );
     } catch (e, st) {
       debugPrint('Upload/Prediction error: $e\n$st');
-      setState(() => _error = 'Upload/Prediction failed: $e');
+      setState(() => _error = tr('upload_prediction_failed', args: [e.toString()]));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Upload/Prediction failed: $e'), backgroundColor: Theme.of(context).colorScheme.error),
+          SnackBar(content: Text(tr('upload_prediction_failed', args: [e.toString()])), backgroundColor: Theme.of(context).colorScheme.error),
         );
       }
     } finally {
@@ -291,7 +288,6 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
     try {
       final resp = await http.get(Uri.parse(API_HISTORY)).timeout(const Duration(seconds: 5));
       if (resp.statusCode != 200) {
-        // history not available — don't treat as fatal
         setState(() => _history = []);
         return;
       }
@@ -304,7 +300,6 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
         _history = parsed.cast<Map<String, dynamic>>();
       });
     } catch (e) {
-      // ignore CORS/404/network errors for history
       debugPrint('History load error: $e');
       setState(() => _history = []);
     }
@@ -331,11 +326,11 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: colorScheme.surfaceVariant, borderRadius: BorderRadius.circular(_cardRadius)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Quick Tips for a Better Scan:', style: theme.textTheme.titleMedium?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.w700)),
+        Text(tr('quick_tips_title'), style: theme.textTheme.titleMedium?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.w700)),
         const SizedBox(height: 10),
-        _tipRow(icon: Icons.lightbulb_outline, text: 'Use natural daylight for accurate color.', theme: theme),
-        _tipRow(icon: Icons.zoom_in, text: 'Focus clearly on the affected area.', theme: theme),
-        _tipRow(icon: Icons.grass_outlined, text: 'Include the whole leaf and some context.', theme: theme),
+        _tipRow(icon: Icons.lightbulb_outline, text: tr('tip_daylight'), theme: theme),
+        _tipRow(icon: Icons.zoom_in, text: tr('tip_focus_area'), theme: theme),
+        _tipRow(icon: Icons.grass_outlined, text: tr('tip_include_leaf'), theme: theme),
       ]),
     );
   }
@@ -354,9 +349,9 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             CircularProgressIndicator(color: colorScheme.secondary),
             const SizedBox(height: 16),
-            Text('Analyzing Image...', style: theme.textTheme.titleMedium?.copyWith(color: colorScheme.secondary)),
+            Text(tr('analyzing_image'), style: theme.textTheme.titleMedium?.copyWith(color: colorScheme.secondary)),
             const SizedBox(height: 8),
-            Text('Please wait while the model processes the image.', textAlign: TextAlign.center),
+            Text(tr('please_wait_processing'), textAlign: TextAlign.center),
           ]),
         ),
       );
@@ -385,7 +380,7 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
                 child: ElevatedButton.icon(
                   onPressed: _showUploadConfirmationDialog,
                   icon: const Icon(Icons.check_circle_outline),
-                  label: const Text('Confirm & Diagnose'),
+                  label: Text(tr('confirm_and_diagnose')),
                 ),
               ),
               const SizedBox(width: 12),
@@ -396,7 +391,7 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
                   _lastPickedFileName = null;
                 }),
                 icon: const Icon(Icons.close),
-                label: const Text('Discard'),
+                label: Text(tr('discard')),
               ),
             ]),
           ),
@@ -408,21 +403,21 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
     return Column(mainAxisSize: MainAxisSize.min, children: [
       Icon(Icons.camera_alt_outlined, size: 80, color: colorScheme.primary),
       const SizedBox(height: 16),
-      Text('Start Diagnosing', style: theme.textTheme.headlineSmall),
+      Text(tr('start_diagnosing'), style: theme.textTheme.headlineSmall),
       const SizedBox(height: 10),
-      Text('Tap below to take a picture of the plant leaf or choose from your gallery.', textAlign: TextAlign.center),
+      Text(tr('take_picture_prompt'), textAlign: TextAlign.center),
       const SizedBox(height: 24),
       Row(mainAxisAlignment: MainAxisAlignment.center, children: [
         ElevatedButton.icon(
           onPressed: () => _pickImage(ImageSource.camera),
           icon: const Icon(Icons.camera_alt),
-          label: const Text('Camera'),
+          label: Text(tr('camera')),
         ),
         const SizedBox(width: 12),
         OutlinedButton.icon(
           onPressed: () => _pickImage(ImageSource.gallery),
           icon: const Icon(Icons.photo_library_outlined),
-          label: const Text('Gallery'),
+          label: Text(tr('gallery')),
         ),
       ]),
     ]);
@@ -430,7 +425,7 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
 
   // ---------- History item widget ----------
   Widget _historyItem(Map<String, dynamic> item) {
-    final result = item['result']?.toString() ?? item['prediction']?.toString() ?? 'Unknown';
+    final result = item['result']?.toString() ?? item['prediction']?.toString() ?? tr('unknown');
     final confidence = item['confidence']?.toString() ?? '';
     final filename = item['filename']?.toString();
     final imageUrlRaw = item['image_url'] ?? item['image'] ?? filename;
@@ -482,17 +477,7 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text('Diagnose'),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadHistory,
-            tooltip: 'Refresh history',
-          ),
-        ],
-      ),
+  
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
@@ -500,9 +485,9 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 900),
               child: Column(children: [
-                Text('AI-Powered Plant Doctor', style: theme.textTheme.headlineSmall?.copyWith(fontSize: 26, color: theme.colorScheme.primary)),
+                Text(tr('ai_powered_plant_doctor'), style: theme.textTheme.headlineSmall?.copyWith(fontSize: 26, color: theme.colorScheme.primary)),
                 const SizedBox(height: 8),
-                Text('Get an instant diagnosis by uploading a clear photo of the leaf.', style: theme.textTheme.bodyLarge, textAlign: TextAlign.center),
+                Text(tr('get_instant_diagnosis'), style: theme.textTheme.bodyLarge, textAlign: TextAlign.center),
                 const SizedBox(height: 18),
 
                 // interactive area
@@ -523,7 +508,7 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Text(_predictionLabel!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                             const SizedBox(height: 6),
-                            Text('Confidence: ${_predictionConfidence?.toStringAsFixed(2) ?? '0.00'}%', style: const TextStyle(fontSize: 14)),
+                            Text('${tr('confidence')}: ${_predictionConfidence?.toStringAsFixed(2) ?? '0.00'}%', style: const TextStyle(fontSize: 14)),
                           ]),
                         ),
                       ]),
@@ -544,10 +529,10 @@ class _DiagnoseScreenState extends State<DiagnoseScreen> {
                 const SizedBox(height: 28),
 
                 // History list
-                Align(alignment: Alignment.centerLeft, child: Text('Recent Diagnoses', style: theme.textTheme.titleMedium)),
+                Align(alignment: Alignment.centerLeft, child: Text(tr('recent_diagnoses'), style: theme.textTheme.titleMedium)),
                 const SizedBox(height: 8),
                 if (_history.isEmpty)
-                  Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)), child: const Center(child: Text('No history yet.'))),
+                  Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)), child: Center(child: Text(tr('no_history_yet')))),
                 if (_history.isNotEmpty)
                   ListView.separated(
                     shrinkWrap: true,

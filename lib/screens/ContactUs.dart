@@ -2,9 +2,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 /// =======================================================
-///  LAUNCH SERVICES (call / email / whatsapp / maps) - Logic is kept clean
+///  LAUNCH SERVICES (call / email / whatsapp / maps)
 /// =======================================================
 class LaunchServices {
   final BuildContext context;
@@ -13,7 +14,7 @@ class LaunchServices {
   void _showError(String service) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text("❌ Unable to open $service"),
+        content: Text(tr('unable_open', namedArgs: {'service': service})),
         backgroundColor: Theme.of(context).colorScheme.error,
       ),
     );
@@ -23,10 +24,10 @@ class LaunchServices {
     final Uri call = Uri(scheme: "tel", path: phone);
     try {
       if (!await launchUrl(call, mode: LaunchMode.externalApplication)) {
-        _showError("Dialer");
+        _showError(tr('dialer'));
       }
     } catch (_) {
-      _showError("Dialer");
+      _showError(tr('dialer'));
     }
   }
 
@@ -41,10 +42,10 @@ class LaunchServices {
     );
     try {
       if (!await launchUrl(email, mode: LaunchMode.externalApplication)) {
-        _showError("Email");
+        _showError(tr('email'));
       }
     } catch (_) {
-      _showError("Email");
+      _showError(tr('email'));
     }
   }
 
@@ -52,28 +53,27 @@ class LaunchServices {
     final Uri wa = Uri.parse("https://wa.me/$phone?text=${Uri.encodeComponent(text)}");
     try {
       if (!await launchUrl(wa, mode: LaunchMode.externalApplication)) {
-        _showError("WhatsApp");
+        _showError(tr('whatsapp'));
       }
     } catch (_) {
-      _showError("WhatsApp");
+      _showError(tr('whatsapp'));
     }
   }
 
   Future<void> launchMaps(String query) async {
-    // Corrected URL structure for Google Maps query
-    final Uri map = Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(query)}"); 
+    final Uri map = Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(query)}");
     try {
       if (!await launchUrl(map, mode: LaunchMode.externalApplication)) {
-        _showError("Maps");
+        _showError(tr('maps'));
       }
     } catch (_) {
-      _showError("Maps");
+      _showError(tr('maps'));
     }
   }
 }
 
 /// =======================================================
-///  CONTACT US PAGE
+///  CONTACT US PAGE
 /// =======================================================
 class ContactUsPage extends StatefulWidget {
   const ContactUsPage({super.key});
@@ -90,11 +90,9 @@ class _ContactUsPageState extends State<ContactUsPage> {
   final emailCtrl = TextEditingController();
   final msgCtrl = TextEditingController();
 
-  // Removed hardcoded color constants
-
   // Example contact values (replace with real ones)
   final String supportPhone = '+919999999999';
-  final String supportWhatsapp = '918767258243'; // WhatsApp numbers require country code without '+'
+  final String supportWhatsapp = '918767258243'; // WhatsApp requires country code without '+'
   final String supportEmail = 'abccompany@gmail.com';
   final String supportLocationQuery = 'Qutb Minar, Delhi';
 
@@ -127,10 +125,10 @@ class _ContactUsPageState extends State<ContactUsPage> {
             children: [
               Icon(Icons.check_circle, color: colorScheme.primary),
               const SizedBox(width: 10),
-              Expanded(child: Text("Message Sent!", style: theme.textTheme.titleMedium)),
+              Expanded(child: Text(tr('message_sent'), style: theme.textTheme.titleMedium)),
             ],
           ),
-          content: Text("We’ll respond within 24 hours. Thank you!", style: theme.textTheme.bodyMedium),
+          content: Text(tr('we_will_respond'), style: theme.textTheme.bodyMedium),
           actions: [
             TextButton(
               onPressed: () {
@@ -148,11 +146,10 @@ class _ContactUsPageState extends State<ContactUsPage> {
   }
 
   // --- HELPER WIDGETS (Theme Compliant) ---
-
   Widget _quickAction({
     required String label,
     required IconData icon,
-    required Color color, // Primary color for the icon avatar
+    required Color color,
     required VoidCallback onTap,
   }) {
     final theme = Theme.of(context);
@@ -162,7 +159,7 @@ class _ContactUsPageState extends State<ContactUsPage> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        width: 152, // Fixed width for nice grid structure
+        width: 152,
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
         decoration: BoxDecoration(
           color: theme.cardColor,
@@ -178,10 +175,7 @@ class _ContactUsPageState extends State<ContactUsPage> {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(label, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
-                Text(
-                  "Tap to open",
-                  style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withOpacity(0.6)),
-                ),
+                Text(tr('tap_to_open'), style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withOpacity(0.6))),
               ]),
             )
           ],
@@ -200,20 +194,17 @@ class _ContactUsPageState extends State<ContactUsPage> {
   }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
+
     return TextFormField(
       controller: ctrl,
       validator: validator,
       keyboardType: keyboardType,
       maxLines: maxLines,
-      // Rely on theme InputDecorationTheme, but override icon color
       decoration: InputDecoration(
         hintText: hint,
         prefixIcon: Icon(icon, color: colorScheme.primary),
-        // Overrides the theme's default fill color to ensure contrast if needed
-        fillColor: theme.inputDecorationTheme.fillColor, 
-        // Ensure that text field padding is consistent across the app
-        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12), 
+        fillColor: theme.inputDecorationTheme.fillColor,
+        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
       ),
       style: theme.textTheme.bodyLarge,
     );
@@ -228,7 +219,6 @@ class _ContactUsPageState extends State<ContactUsPage> {
   }
 
   // --- BUILD METHOD ---
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -238,15 +228,13 @@ class _ContactUsPageState extends State<ContactUsPage> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        // Use primary color for App Bar (makes it vibrant in light mode, dark in dark mode)
-        backgroundColor: colorScheme.primary, 
+        backgroundColor: colorScheme.primary,
         elevation: 0,
-           title:   Text('CropCareAI', style: theme.textTheme.titleLarge?.copyWith(color: colorScheme.onPrimary, fontWeight: FontWeight.w800)),
-       
+        title: Text(tr('app_title'), style: theme.textTheme.titleLarge?.copyWith(color: colorScheme.onPrimary, fontWeight: FontWeight.w800)),
         centerTitle: false,
         actions: [
           IconButton(
-            tooltip: 'Call support',
+            tooltip: tr('call_support'),
             onPressed: () => launchServices.launchCall(supportPhone),
             icon: Icon(Icons.phone, color: colorScheme.onPrimary),
           )
@@ -276,28 +264,14 @@ class _ContactUsPageState extends State<ContactUsPage> {
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text('Need help with your crop?', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                          Text(tr('need_help'), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                           const SizedBox(height: 6),
-                          Text(
-                            'Contact our support team — quick, friendly, and simple. Choose a contact method below or write to us.',
-                            style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withOpacity(0.7)),
-                          ),
+                          Text(tr('contact_subtitle'), style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withOpacity(0.7))),
                           const SizedBox(height: 12),
-                          // Chips (using theme colors)
                           Wrap(spacing: 8, runSpacing: 8, children: [
-                            Chip(
-                              label: const Text('Support: 24h'),
-                              avatar: Icon(Icons.timer, size: 18, color: colorScheme.onSurface),
-                              backgroundColor: colorScheme.surfaceVariant,
-                              labelStyle: theme.textTheme.bodySmall,
-                            ),
-                            Chip(
-                              label: const Text('Fast replies'),
-                              avatar: Icon(Icons.flash_on, size: 18, color: colorScheme.secondary),
-                              backgroundColor: colorScheme.secondary.withOpacity(0.2),
-                              labelStyle: theme.textTheme.bodySmall,
-                            ),
-                          ])
+                            Chip(label: Text(tr('support_24h')), backgroundColor: colorScheme.surfaceVariant),
+                            Chip(label: Text(tr('fast_replies')), backgroundColor: colorScheme.secondary.withOpacity(0.2)),
+                          ]),
                         ]),
                       )
                     ],
@@ -307,44 +281,35 @@ class _ContactUsPageState extends State<ContactUsPage> {
 
               const SizedBox(height: 28),
 
-              // Quick actions grid header
-              Text('Quick actions', style: theme.textTheme.titleLarge?.copyWith(color: colorScheme.onBackground, fontWeight: FontWeight.w800)),
+              Text(tr('quick_actions'), style: theme.textTheme.titleLarge?.copyWith(color: colorScheme.onBackground, fontWeight: FontWeight.w800)),
               const SizedBox(height: 16),
-              
-              // Quick actions grid
+
               Wrap(
                 spacing: 16,
                 runSpacing: 16,
                 children: [
                   _quickAction(
-                    label: "Call",
+                    label: tr('call'),
                     icon: Icons.phone_rounded,
-                    color: colorScheme.primary, // Use theme primary
+                    color: colorScheme.primary,
                     onTap: () => launchServices.launchCall(supportPhone),
                   ),
                   _quickAction(
-                    label: "WhatsApp",
+                    label: tr('whatsapp'),
                     icon: Icons.chat_bubble_rounded,
-                    color: const Color(0xFF25D366), // Standard WhatsApp Green
-                    onTap: () => launchServices.launchWhatsapp(
-                      supportWhatsapp,
-                      text: 'Hello Support Team',
-                    ),
+                    color: const Color(0xFF25D366),
+                    onTap: () => launchServices.launchWhatsapp(supportWhatsapp, text: tr('hello_support')),
                   ),
                   _quickAction(
-                    label: "Email",
+                    label: tr('email'),
                     icon: Icons.email_outlined,
-                    color: Colors.blue.shade700, // Standard Email Blue
-                    onTap: () => launchServices.launchEmail(
-                      supportEmail,
-                      subject: 'Support request',
-                      body: '',
-                    ),
+                    color: Colors.blue.shade700,
+                    onTap: () => launchServices.launchEmail(supportEmail, subject: tr('support_request'), body: ''),
                   ),
                   _quickAction(
-                    label: "Location",
+                    label: tr('location'),
                     icon: Icons.location_on_outlined,
-                    color: colorScheme.error, // Use theme error color (Red)
+                    color: colorScheme.error,
                     onTap: () => launchServices.launchMaps(supportLocationQuery),
                   ),
                 ],
@@ -352,11 +317,9 @@ class _ContactUsPageState extends State<ContactUsPage> {
 
               const SizedBox(height: 36),
 
-              // Form card header
-              Text('Write to us', style: theme.textTheme.titleLarge?.copyWith(color: colorScheme.onBackground, fontWeight: FontWeight.w800)),
+              Text(tr('write_to_us'), style: theme.textTheme.titleLarge?.copyWith(color: colorScheme.onBackground, fontWeight: FontWeight.w800)),
               const SizedBox(height: 16),
-              
-              // Contact form
+
               Card(
                 color: theme.cardColor,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -369,35 +332,35 @@ class _ContactUsPageState extends State<ContactUsPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _inputField(
-                          hint: "Full Name",
+                          hint: tr('full_name_hint'),
                           icon: Icons.person_outline,
                           ctrl: nameCtrl,
                           validator: (String? v) {
-                            if (v == null || v.trim().length < 2) return "Enter name";
+                            if (v == null || v.trim().length < 2) return tr('enter_name');
                             return null;
                           },
                         ),
                         const SizedBox(height: 16),
 
                         _inputField(
-                          hint: "Email Address",
+                          hint: tr('email_address_hint'),
                           icon: Icons.email_outlined,
                           ctrl: emailCtrl,
                           keyboardType: TextInputType.emailAddress,
                           validator: (String? v) {
-                            if (v == null || !v.contains("@")) return "Enter valid email";
+                            if (v == null || !v.contains("@")) return tr('enter_valid_email');
                             return null;
                           },
                         ),
                         const SizedBox(height: 16),
 
                         _inputField(
-                          hint: "Your Message",
+                          hint: tr('your_message_hint'),
                           icon: Icons.message_outlined,
                           ctrl: msgCtrl,
                           maxLines: 5,
                           validator: (String? v) {
-                            if (v == null || v.trim().length < 8) return "Message too short";
+                            if (v == null || v.trim().length < 8) return tr('message_too_short');
                             return null;
                           },
                         ),
@@ -414,7 +377,7 @@ class _ContactUsPageState extends State<ContactUsPage> {
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               elevation: 3,
                             ),
-                            child: Text('Send Message', style: theme.textTheme.bodyLarge?.copyWith(color: colorScheme.onPrimary, fontWeight: FontWeight.w800)),
+                            child: Text(tr('send_message'), style: theme.textTheme.bodyLarge?.copyWith(color: colorScheme.onPrimary, fontWeight: FontWeight.w800)),
                           ),
                         ),
                       ],
@@ -425,8 +388,7 @@ class _ContactUsPageState extends State<ContactUsPage> {
 
               const SizedBox(height: 28),
 
-              // Social follow row
-              Center(child: Text('Follow us on social media', style: theme.textTheme.titleMedium?.copyWith(color: colorScheme.onBackground, fontWeight: FontWeight.w800))),
+              Center(child: Text(tr('follow_us'), style: theme.textTheme.titleMedium?.copyWith(color: colorScheme.onBackground, fontWeight: FontWeight.w800))),
               const SizedBox(height: 14),
               Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                 _socialButton(Icons.facebook, 'https://facebook.com', Colors.blue.shade700),

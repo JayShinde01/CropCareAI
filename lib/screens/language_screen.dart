@@ -49,7 +49,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
     } catch (e, st) {
       debugPrint('LanguageScreen._initAll error: $e\n$st');
       languages = [
-        {"code": "phone", "native": "Phone's language — English", "audio": null},
+        {"code": "phone", "native": tr('phone_language', namedArgs: {'name': 'English'}), "audio": null},
         {"code": "en", "native": "English", "audio": null},
       ];
       selectedCode ??= 'en';
@@ -86,16 +86,16 @@ class _LanguageScreenState extends State<LanguageScreen> {
     }
 
     languages = [
-      {"code": "phone", "native": "Phone's language", "audio": null},
+      {"code": "phone", "native": tr('phone_language', namedArgs: {'name': '...'}), "audio": null},
       ...list,
     ];
 
     if (deviceLocale != null) {
       final idx = languages.indexWhere((l) => l["code"] == deviceLocale!.languageCode);
       if (idx != -1) {
-        languages[0]["native"] = "Phone's language — ${languages[idx]['native']}";
+        languages[0]["native"] = tr('phone_language', namedArgs: {'name': languages[idx]['native']});
       } else {
-        languages[0]["native"] = "Phone's language — ${deviceLocale!.languageCode}";
+        languages[0]["native"] = tr('phone_language', namedArgs: {'name': deviceLocale!.languageCode});
       }
     }
 
@@ -139,7 +139,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
       debugPrint('Audio play error: $e\n$st');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('Could not play audio'), backgroundColor: colorScheme.error),
+          SnackBar(content: Text(tr('could_not_play_audio')), backgroundColor: colorScheme.error),
         );
       }
     }
@@ -182,7 +182,10 @@ class _LanguageScreenState extends State<LanguageScreen> {
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Language saved to ${selectedCode!.toUpperCase()}'), backgroundColor: Theme.of(context).colorScheme.primary),
+      SnackBar(
+        content: Text(tr('language_saved', namedArgs: {'code': selectedCode!.toUpperCase()})),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+      ),
     );
 
     Navigator.push(
@@ -266,7 +269,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
                 if (audio != null)
                   IconButton(
                     onPressed: () => _onSelectLanguage(lang, play: true),
-                    tooltip: 'Play language name',
+                    tooltip: tr('play_language_name'),
                     icon: isPlaying
                         ? Icon(Icons.stop_circle_outlined, color: colorScheme.secondary)
                         : Icon(Icons.volume_up_outlined, color: colorScheme.primary),
@@ -311,7 +314,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Failed to load languages.', style: theme.textTheme.bodyLarge?.copyWith(color: colorScheme.onBackground.withOpacity(0.7))),
+            Text(tr('failed_load'), style: theme.textTheme.bodyLarge?.copyWith(color: colorScheme.onBackground.withOpacity(0.7))),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _initAll,
@@ -321,7 +324,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('Retry'),
+              child: Text(tr('retry')),
             ),
           ],
         ),
@@ -348,12 +351,12 @@ class _LanguageScreenState extends State<LanguageScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Let's pick a language",
+                    tr('lets_pick_language'),
                     style: theme.textTheme.headlineSmall?.copyWith(color: colorScheme.onPrimary, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    "Choose the language you are most comfortable with. You can change this later in settings.",
+                    tr('choose_language_instructions'),
                     style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onPrimary.withOpacity(0.8)),
                   ),
                 ],
@@ -379,7 +382,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
                     child: TextField(
                       onChanged: (v) => setState(() => _searchText = v),
                       decoration: InputDecoration(
-                        hintText: 'Search language or code',
+                        hintText: tr('search_hint'),
                         hintStyle: TextStyle(color: colorScheme.onSurface.withOpacity(0.6)),
                         border: InputBorder.none,
                         isDense: true,
@@ -402,7 +405,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
             // Language List
             Expanded(
               child: filtered.isEmpty
-                  ? Center(child: Text('No languages found', style: theme.textTheme.bodyLarge?.copyWith(color: colorScheme.onBackground.withOpacity(0.6))))
+                  ? Center(child: Text(tr('no_languages_found'), style: theme.textTheme.bodyLarge?.copyWith(color: colorScheme.onBackground.withOpacity(0.6))))
                   : ListView.builder(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       itemCount: filtered.length,
@@ -439,7 +442,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
             Icon( Icons.eco, color: AgrioDemoApp.primaryGreen, size: 24),
             const SizedBox(width: 8),
             Text(
-              "CropCareAI",
+              tr('app_title'),
               style: theme.textTheme.titleLarge?.copyWith(
                 color: colorScheme.onBackground,
                 fontWeight: FontWeight.w700,
@@ -460,7 +463,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
             label: Padding(
               padding: const EdgeInsets.symmetric(vertical: 14),
               child: Text(
-                'Continue',
+                tr('continue'),
                 style: theme.textTheme.bodyLarge?.copyWith(fontSize: 18, color: colorScheme.onPrimary, fontWeight: FontWeight.w700),
               ),
             ),

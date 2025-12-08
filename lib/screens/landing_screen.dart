@@ -1,6 +1,8 @@
 // lib/screens/landing_screen.dart
 import 'package:demo/main.dart';
+import 'package:demo/screens/diagnose_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class LandingScreen extends StatelessWidget {
   const LandingScreen({super.key});
@@ -16,18 +18,21 @@ class LandingScreen extends StatelessWidget {
       builder: (_) => AlertDialog(
         backgroundColor: theme.cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('How CropCareAI helps', style: theme.textTheme.titleLarge),
+        title: Text(tr('how_this_helps_title'), style: theme.textTheme.titleLarge),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _bulletItem(c, 'Take a photo of a plant to identify pests or disease and get simple steps.'),
-            _bulletItem(c, 'Ask Advice for quick tips like water, fertilizer, and timing.'),
-            _bulletItem(c, 'Use Scan Field for larger checks and maps.'),
+            _bulletItem(c, tr('help_bullet_1')),
+            _bulletItem(c, tr('help_bullet_2')),
+            _bulletItem(c, tr('help_bullet_3')),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c), child: Text('Close', style: TextStyle(color: theme.colorScheme.primary))),
+          TextButton(
+            onPressed: () => Navigator.pop(c),
+            child: Text(tr('close'), style: TextStyle(color: theme.colorScheme.primary)),
+          ),
         ],
       ),
     );
@@ -55,14 +60,14 @@ class LandingScreen extends StatelessWidget {
 
   // small helper for feature tiles (Theme compliant)
   Widget _featureTile(BuildContext context,
-      {required IconData icon, required String title, required String subtitle, required Color color, required VoidCallback onTap}) {
+      {required IconData icon, required String titleKey, required String subtitleKey, required Color color, required VoidCallback onTap}) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
     return Expanded(
       child: Semantics(
         button: true,
-        label: '$title. $subtitle',
+        label: '${tr(titleKey)}. ${tr(subtitleKey)}',
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
@@ -71,7 +76,7 @@ class LandingScreen extends StatelessWidget {
             elevation: 4,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10), // Increased padding
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
               child: Column(
                 children: [
                   CircleAvatar(
@@ -79,9 +84,11 @@ class LandingScreen extends StatelessWidget {
                     child: Icon(icon, color: color),
                   ),
                   const SizedBox(height: 10),
-                  Text(title, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+                  Text(tr(titleKey), style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
                   const SizedBox(height: 4),
-                  Text(subtitle, style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withOpacity(0.6)), textAlign: TextAlign.center),
+                  Text(tr(subtitleKey),
+                      style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withOpacity(0.6)),
+                      textAlign: TextAlign.center),
                 ],
               ),
             ),
@@ -90,7 +97,6 @@ class LandingScreen extends StatelessWidget {
       ),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +118,7 @@ class LandingScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 // Use theme primary and secondary colors for the vibrant gradient
                 gradient: LinearGradient(colors: [colorScheme.primary, colorScheme.secondary]),
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)), // More pronounced curve
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
                 boxShadow: [BoxShadow(color: colorScheme.primary.withOpacity(0.4), blurRadius: 10, offset: const Offset(0, 5))],
               ),
               child: Column(
@@ -123,10 +129,10 @@ class LandingScreen extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                           Icon(Icons.eco, color: AgrioDemoApp.primaryGreen, size: 28),
+                          Icon(Icons.eco, color: AgrioDemoApp.primaryGreen, size: 28),
                           const SizedBox(width: 10),
                           Text(
-                            'CropCareAI',
+                            tr('app_title'),
                             style: theme.textTheme.titleLarge?.copyWith(color: colorScheme.onPrimary, fontWeight: FontWeight.w800),
                           ),
                         ],
@@ -134,7 +140,7 @@ class LandingScreen extends StatelessWidget {
                       IconButton(
                         onPressed: () => _showHelpDialog(context),
                         icon: Icon(Icons.help_outline, color: colorScheme.onPrimary),
-                        tooltip: 'How this app helps you',
+                        tooltip: tr('how_this_helps_hint'),
                       ),
                     ],
                   ),
@@ -143,7 +149,7 @@ class LandingScreen extends StatelessWidget {
 
                   // Headline and subtitle
                   Text(
-                    'Smart, simple farming help',
+                    tr('hero_headline'),
                     style: theme.textTheme.headlineMedium?.copyWith(
                       fontSize: _scale(context, isWide ? 30 : 24),
                       fontWeight: FontWeight.w900,
@@ -153,7 +159,7 @@ class LandingScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'Point your camera at a plant and get plain-language advice — pests, disease, watering and next steps.',
+                    tr('hero_subtitle'),
                     style: TextStyle(color: colorScheme.onPrimary.withOpacity(0.8), fontSize: _scale(context, 14)),
                     textAlign: TextAlign.center,
                   ),
@@ -166,14 +172,13 @@ class LandingScreen extends StatelessWidget {
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () {
-                            // Navigate to Diagnose Screen
-                            Navigator.pushNamed(context, '/diagnose');
+                           Navigator.push(context, MaterialPageRoute(builder: (context) => DiagnoseScreen(),));
                           },
                           icon: const Icon(Icons.camera_alt, color: Colors.black87),
                           label: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             child: Text(
-                              'Identify plant — take photo',
+                              tr('identify_cta'),
                               style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: _scale(context, 15)),
                             ),
                           ),
@@ -194,16 +199,15 @@ class LandingScreen extends StatelessWidget {
                             // Navigate to login for authenticated use
                             Navigator.pushNamed(context, '/login');
                           },
-                          
                           style: OutlinedButton.styleFrom(
                             backgroundColor: const Color.fromARGB(255, 4, 150, 9),
                             foregroundColor: Colors.green,
                             side: BorderSide(color: colorScheme.onPrimary.withOpacity(0.5), width: 1.5),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                            child: Text('Login', style: TextStyle(fontWeight: FontWeight.w700,color: Colors.lightGreenAccent)),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: Text(tr('login'), style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.lightGreenAccent)),
                           ),
                         ),
                       )
@@ -237,28 +241,28 @@ class LandingScreen extends StatelessWidget {
                               _featureTile(
                                 context,
                                 icon: Icons.chat_bubble_outline,
-                                title: 'Ask Advice',
-                                subtitle: 'Quick tips for your crop',
+                                titleKey: 'ask_advice_title',
+                                subtitleKey: 'ask_advice_sub',
                                 color: colorScheme.primary,
-                                onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ask Advice tapped'))),
+                                onTap: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('ask_advice_tapped')))),
                               ),
                               const SizedBox(width: 12),
                               _featureTile(
                                 context,
                                 icon: Icons.map_outlined,
-                                title: 'Scan Field',
-                                subtitle: 'Map and area checks',
+                                titleKey: 'scan_field_title',
+                                subtitleKey: 'scan_field_sub',
                                 color: colorScheme.secondary,
-                                onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Scan Field tapped'))),
+                                onTap: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('scan_field_tapped')))),
                               ),
                               const SizedBox(width: 12),
                               _featureTile(
                                 context,
                                 icon: Icons.book_outlined,
-                                title: 'Manuals',
-                                subtitle: 'Step-by-step guides',
+                                titleKey: 'manuals_title',
+                                subtitleKey: 'manuals_sub',
                                 color: colorScheme.error,
-                                onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Manuals tapped'))),
+                                onTap: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('manuals_tapped')))),
                               ),
                             ],
                           ),
@@ -272,20 +276,20 @@ class LandingScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('How this helps you', style: theme.textTheme.titleLarge),
+                              Text(tr('how_this_helps_section'), style: theme.textTheme.titleLarge),
                               const SizedBox(height: 10),
-                              _bulletItem(context, 'Identify problems quickly — get simple next steps you can follow.'),
-                              _bulletItem(context, 'Learn how much to water, when to spray, and how to care for your crop.'),
-                              _bulletItem(context, 'Save and track fields, so you know what worked and when.'),
+                              _bulletItem(context, tr('quick_help_1')),
+                              _bulletItem(context, tr('quick_help_2')),
+                              _bulletItem(context, tr('quick_help_3')),
                               const SizedBox(height: 16),
-                              Text('Tips for best results', style: theme.textTheme.titleMedium),
+                              Text(tr('tips_title'), style: theme.textTheme.titleMedium),
                               const SizedBox(height: 8),
-                              _bulletItem(context, 'Take photos in daylight and include leaves and stems.'),
-                              _bulletItem(context, 'If you have many fields, give them names like "North field" or "Plot A".'),
+                              _bulletItem(context, tr('tip_1')),
+                              _bulletItem(context, tr('tip_2')),
                             ],
                           ),
                         ),
-                        
+
                         const SizedBox(height: 20),
 
                         // Footnote & CTA
@@ -295,7 +299,7 @@ class LandingScreen extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: Text(
-                                  'Don\'t worry — the app gives simple steps. Consult a local expert if unsure.',
+                                  tr('footnote_text'),
                                   style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withOpacity(0.7)),
                                 ),
                               ),
@@ -311,7 +315,7 @@ class LandingScreen extends StatelessWidget {
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                 ),
-                                child: const Text('Go to Home'),
+                                child: Text(tr('go_to_home')),
                               ),
                             ],
                           ),
@@ -351,7 +355,7 @@ class _SimpleFooterPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    
+
     // Hill (Theme Primary)
     final hillPaint = Paint()..color = primaryColor.withOpacity(0.85);
     final p = Path()
@@ -366,14 +370,14 @@ class _SimpleFooterPainter extends CustomPainter {
     // Small wheat icons (Theme Accent)
     final stalkPaint = Paint()..color = accentColor.withOpacity(0.8);
     final grainPaint = Paint()..color = accentColor.withOpacity(0.9);
-    
+
     for (int i = 0; i < 4; i++) {
       final x = w * (0.12 + i * 0.2);
       final baseY = h * 0.65;
-      
+
       // Stalk
       canvas.drawRect(Rect.fromLTWH(x - 2, baseY - 24, 4, 24), stalkPaint);
-      
+
       // Grains (small ovals around the top)
       canvas.drawOval(Rect.fromCenter(center: Offset(x + 8, baseY - 18), width: 12, height: 8), grainPaint);
       canvas.drawOval(Rect.fromCenter(center: Offset(x - 8, baseY - 30), width: 12, height: 8), grainPaint);

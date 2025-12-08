@@ -22,9 +22,30 @@ import 'package:latlong2/latlong.dart';
 // Theme manager
 import 'package:demo/widgets/theme_manager.dart';
 
-// --- MAIN FUNCTION REMAINS THE SAME ---
+// Localization
+import 'package:easy_localization/easy_localization.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize easy_localization before Firebase & app run
+  await EasyLocalization.ensureInitialized();
+
+  // Attempt to load saved locale code from SharedPreferences
+  Locale? savedLocale;
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final code = prefs.getString('locale_code'); // stored as 'en', 'hi', 'mr', etc.
+    final country = prefs.getString('locale_country'); // optional, e.g. 'IN'
+    if (code != null && code.isNotEmpty) {
+      savedLocale = (country != null && country.isNotEmpty)
+          ? Locale(code, country)
+          : Locale(code);
+    }
+  } catch (e) {
+    debugPrint('Could not load saved locale: $e');
+  }
 
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -35,14 +56,25 @@ Future<void> main() async {
   // Load saved theme mode before building app
   await ThemeNotifier.init();
 
-  runApp(const AgrioDemoApp());
+  runApp(
+    EasyLocalization(
+      supportedLocales: const [
+        Locale('en'), // English
+        Locale('hi'), // Hindi
+        Locale('mr'), // Marathi (add or remove as you like)
+      ],
+      path: 'assets/langs', // <-- make sure your json files are here
+      fallbackLocale: const Locale('en'),
+      startLocale: savedLocale, // if null, device/system locale will be used
+      child: const AgrioDemoApp(),
+    ),
+  );
 }
 
 class AgrioDemoApp extends StatelessWidget {
   const AgrioDemoApp({super.key});
 
   // 🌿 VIBRANT, FRESH AGRICULTURE COLOR PALETTE (Matched to Dark Screen Image)
-
   static const Color primaryGreen = Color(0xFF00C853);
   static const Color lightGreen = Color(0xFF69F0AE);
   static const Color accentYellow = Color.fromARGB(255, 154, 197, 27);
@@ -228,14 +260,36 @@ class AgrioDemoApp extends StatelessWidget {
     );
   }
 
+  // helper to save locale from anywhere in the app
+  static Future<void> saveLocaleToPrefs(Locale locale) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('locale_code', locale.languageCode);
+      if (locale.countryCode != null) {
+        await prefs.setString('locale_country', locale.countryCode!);
+      } else {
+        await prefs.remove('locale_country');
+      }
+    } catch (e) {
+      debugPrint('Failed to save locale: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // easy_localization provides these via context
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: ThemeNotifier.notifier,
       builder: (context, mode, _) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          title: 'CropCare AI',
+          title: 'KisanRakshak',
+          // Localization integration
+          localizationsDelegates: context.localizationDelegates,
+          supportedLocales: context.supportedLocales,
+          locale: context.locale,
+          // End localization integration
+
           theme: _buildLightTheme(),
           darkTheme: _buildDarkTheme(),
           themeMode: mode,
@@ -263,12 +317,11 @@ class AgrioDemoApp extends StatelessWidget {
             '/home': (_) => const HomeScreen(),
             '/profile': (_) => const ProfileScreen(),
             '/landing': (_) => const LandingScreen(),
-            '/fieldmap': (_) => const FieldMapScreen(),            
+            '/fieldmap': (_) => const FieldMapScreen(),
             '/schedule': (_) => const ScheduleScreen(),
             '/diagnose': (_) => const DiagnoseScreen(),
             // '/demo' kept for backward-compat — supplies a default initial point so SatelliteScreen can build
             '/demo': (_) => const NdviMapScreen(),
-            
           },
           onUnknownRoute: (settings) => MaterialPageRoute(builder: (_) => const LanguageScreen()),
         );
