@@ -82,16 +82,18 @@ class _HomeScreenState extends State<HomeScreen> {
   drawer: _buildAppDrawer(context, isDesktop: isDesktop),
 
   // ⭐ Floating Chatbot Button (Added here)
-  floatingActionButton: FloatingActionButton(
-    onPressed: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const ChatScreen()),
-      );
-    },
-    backgroundColor: primaryGreen,
-    child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
-  ),
+ floatingActionButton: FloatingActionButton(
+  heroTag: 'home_chat_fab', // <-- unique tag
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ChatScreen()),
+    );
+  },
+  backgroundColor: primaryGreen,
+  child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+),
+
 
   // Responsive AppBar
   appBar: PreferredSize(
