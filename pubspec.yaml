@@ -65,4 +65,5 @@ flutter:
 
   assets:
     - assets/images/google_logo.jpg
+    - assets/images/app_logo.png
     - assets/langs/

@@ -12,148 +12,147 @@ class Cropcare extends StatefulWidget {
 class _CropcareState extends State<Cropcare> {
   // disease data (kept as you provided — these are content strings and can be localized later if needed)
   final List<Map<String, dynamic>> wheatDiseases = [
-    {
-      "name": "Wheat Rust (Stem, Leaf, Stripe)",
-      "image": "https://cs-assets.bayer.com/is/image/bayer/leaf-rust-fungicide-crop-protection",
-      "images": [
-        "https://agritech.tnau.ac.in/crop_protection/images/wheat_diseases/wheat%20leaf%20rust%20nice_1.jpg",
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS-7U7YfomxIWhHuynuRzuMuWl9phM_Asll4ftH-Pfmjyj0chiFbSGwMy1-K9Spt5qSpt5qSCSXAxCgdJmvLNonuCkbLI4MqBFtQvOBPNdWQXJM&s=10",
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTQRILE_7c68t0UBENe4gHAgbdly3P4wXuDfdD3AulCsljPDgmygMlwm5o8nAIWtiY8b-k&usqp=CAU"
-      ],
-      "cause": "Fungal infection by Puccinia species (P. graminis, P. triticina, P. striiformis)",
-      "symptoms": [
-        "Orange/yellow rust pustules on leaves and stems.",
-        "Pustules rupture, releasing powdery spores.",
-        "Reduced grain size and shriveled grains.",
-        "Stunted growth in severe cases."
-      ],
-      "prevention": [
-        "Use rust-resistant varieties appropriate for your region.",
-        "Apply specialized fungicides (e.g., Triazoles) timely.",
-        "Avoid late sowing, which can increase vulnerability."
-      ],
-      "severity": "high",
-      "onset": "Throughout season",
-      "recommended_pesticide": "Propiconazole or Azoxystrobin",
-      "dosage": "As per product instructions (e.g., 500ml/ha)",
-      "how_people_handled": [
-        "Many farmers in Punjab report good results with a single spray of Propiconazole at flag leaf stage.",
-        "Some use resistant seeds but still monitor closely during rainy periods."
-      ]
-    },
-     {
-      "name": "Karnal Bunt (Partial Bunt)",
-      "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSgbV5uAtM9AjJ9SbupvfmpdRwTyAhQ4Yo7hA&s",
-      "images": [
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSgbV5uAtM9AjJ9SbupvfmpdRwTyAhQ4Yo7hA&s",
-        "https://www.tribuneindia.com/sortd-service/imaginary/v22-01/jpg/large/high?url=dGhldHJpYnVuZS1zb3J0ZC1wcm8tcHJvZC1zb3J0ZC9tZWRpYTU3ZGM3MmUwLTJhMmYtMTFmMC04NDBiLTBkMWUyZGMyZWRkYi5qcGc=",
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTCn8Bie6a5vhyVaIHx-wpzSL3c3WTjCznFyMsxGf6XAFBCl_saVkREaD8Qweup3SYl_NM&usqp=CAU"
-      ],
-      "cause": "Fungus: Tilletia indica (a seed and soil-borne disease)",
-      "symptoms": [
-        "**Black powdery fungal masses** replacing parts of the wheat kernels.",
-        "Strong, unpleasant **fishy smell** (trimethylamine) from infected grains.",
-        "Reduced grain quality, unfit for consumption."
-      ],
-      "prevention": [
-        "Use **seed treatment** with fungicides like Tebuconazole.",
-        "Practice **crop rotation** to reduce pathogen load in the soil.",
-        "Avoid excessive irrigation, especially during flowering time."
-      ],
-      "severity": "moderate",
-      "onset": "Flowering to maturity",
-      "recommended_pesticide": "Tebuconazole (as seed treatment)",
-      "how_people_handled": [
-        "Seed treatment worked well, but irrigation control was difficult during unexpected rain."
-      ]
-    },
-    {
-      "name": "Powdery Mildew",
-      "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyb9wJxHN_PWcoNDcnI532gWfzfx3UckdyBg&s",
-      "images": [
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyb9wJxHN_PWcoNDcnI532gWfzfx3UckdyBg&s",
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQoEAdqkfEsPyNIz2sTmD15JHcLFlMwO5HUMg&s",
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTuyip00FD6WBkem6TfDLQ118QQ90bjeT10Yw&s"
-      ],
-      "cause": "Fungus: Blumeria graminis (thrives in cool, humid conditions)",
-      "symptoms": [
-        "Distinctive **white powdery patches** on the upper surface of leaves and stems.",
-        "Patches turn gray/brown over time.",
-        "Reduced ability of the plant to photosynthesize."
-      ],
-      "prevention": [
-        "Avoid **dense planting** to ensure good airflow.",
-        "Apply **sulphur-based fungicides** early on.",
-        "Select and use resistant cultivars if known to be a local issue."
-      ],
-      "severity": "low",
-      "onset": "Early spring",
-      "recommended_pesticide": "Sulfur wettable powder or Triadimefon",
-      "dosage": "2 kg/ha (Sulphur)",
-      "how_people_handled": []
-    },
-    {
-      "name": "Loose Smut",
-      "image":
-          "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQy9Gfg3q2jsjb1sSWsWIW7GRdnnr9L0p9xiQ&s",
-      "images": [
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTAyurMnkFeSpFd5-wVAUZ_kYbPWcQ1ImkpSg&s",
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQuDBMSatQIYvUxClXkCTxaiiveRG5q-K_StA&s",
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQoeO_Cg3mtZ8ADm0DXDy23qstTxd5fMLl2Iw&s"
-      ],
-      "cause": "Fungus: Ustilago tritici (carried inside seed embryo)",
-      "symptoms": [
-        "Entire wheat ear replaced by black, sooty spores.",
-        "Infected ears emerge earlier.",
-        "Spores easily blow away leaving bare stalk."
-      ],
-      "prevention": [
-        "Use disease-free certified seeds.",
-        "Hot water seed treatment.",
-        "Apply systemic seed fungicides like Carboxin."
-      ],
-      "severity": "moderate",
-      "onset": "Heading stage",
-      "recommended_pesticide": "Carboxin or Tebuconazole",
-      "how_people_handled": [
-        "Many farmers use certified seed to avoid infection.",
-        "Hot-water seed treatment significantly reduced spread in many areas."
-      ]
-    },
-    {
-      "name": "Barley Yellow Dwarf Virus (BYDV)",
-      "image":
-          "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS8a1TSKYVt3b5ivcUB1Ix32ongjMbztJpKDQ&s",
-      "images": [
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS8a1TSKYVt3b5ivcUB1Ix32ongjMbztJpKDQ&s",
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSmlIhnhQEZcL09cePf2PmCVPHVga4sIrvyOA&s",
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Barley_Yellow_Dwarf_Virus_in_wheat.jpg/250px-Barley_Yellow_Dwarf_Virus_in_wheat.jpg"
-      ],
-      "cause": "Virus spread by aphids",
-      "symptoms": [
-        "Yellowing and reddening of leaf tips.",
-        "Severe stunting.",
-        "Poor tillering and reduced yield."
-      ],
-      "prevention": [
-        "Control aphids early using insecticides.",
-        "Remove alternate host weeds.",
-        "Use resistant varieties."
-      ],
-      "severity": "high",
-      "onset": "Early growth stages",
-      "recommended_pesticide": "Imidacloprid (controls aphids)",
-      "treatment": [
-        "No direct cure for BYDV virus.",
-        "Control aphid carriers to prevent spread."
-      ],
-      "how_people_handled": [
-        "Farmers observed improved yields after early aphid management.",
-        "Removing wild grasses near fields reduced infection rate."
-      ]
-    }
-    // ... keep rest of your disease list unchanged (Karnal Bunt, Powdery Mildew, etc.)
-  ];
+  {
+    "name": "disease_wheat_rust",
+    "image": "https://cs-assets.bayer.com/is/image/bayer/leaf-rust-fungicide-crop-protection",
+    "images": [
+      "https://agritech.tnau.ac.in/crop_protection/images/wheat_diseases/wheat%20leaf%20rust%20nice_1.jpg",
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS-7U7YfomxIWhHuynuRzuMuWl9phM_Asll4ftH-Pfmjyj0chiFbSGwMy1-K9Spt5qSpt5qSCSXAxCgdJmvLNonuCkbLI4MqBFtQvOBPNdWQXJM&s=10",
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTQRILE_7c68t0UBENe4gHAgbdly3P4wXuDfdD3AulCsljPDgmygMlwm5o8nAIWtiY8b-k&usqp=CAU"
+    ],
+    "cause": "Fungal infection by Puccinia species (P. graminis, P. triticina, P. striiformis)",
+    "symptoms": [
+      "Orange/yellow rust pustules on leaves and stems.",
+      "Pustules rupture, releasing powdery spores.",
+      "Reduced grain size and shriveled grains.",
+      "Stunted growth in severe cases."
+    ],
+    "prevention": [
+      "Use rust-resistant varieties appropriate for your region.",
+      "Apply specialized fungicides (e.g., Triazoles) timely.",
+      "Avoid late sowing, which can increase vulnerability."
+    ],
+    "severity": "high",
+    "onset": "Throughout season",
+    "recommended_pesticide": "Propiconazole or Azoxystrobin",
+    "dosage": "As per product instructions (e.g., 500ml/ha)",
+    "how_people_handled": [
+      "Many farmers in Punjab report good results with a single spray of Propiconazole at flag leaf stage.",
+      "Some use resistant seeds but still monitor closely during rainy periods."
+    ]
+  },
+  {
+    "name": "disease_karnal_bunt",
+    "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSgbV5uAtM9AjJ9SbupvfmpdRwTyAhQ4Yo7hA&s",
+    "images": [
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSgbV5uAtM9AjJ9SbupvfmpdRwTyAhQ4Yo7hA&s",
+      "https://www.tribuneindia.com/sortd-service/imaginary/v22-01/jpg/large/high?url=dGhldHJpYnVuZS1zb3J0ZC1wcm8tcHJvZC1zb3J0ZC9tZWRpYTU3ZGM3MmUwLTJhMmYtMTFmMC04NDBiLTBkMWUyZGMyZWRkYi5qcGc=",
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTCn8Bie6a5vhyVaIHx-wpzSL3c3WTjCznFyMsxGf6XAFBCl_saVkREaD8Qweup3SYl_NM&usqp=CAU"
+    ],
+    "cause": "Fungus: Tilletia indica (a seed and soil-borne disease)",
+    "symptoms": [
+      "Black powdery fungal masses replacing parts of the wheat kernels.",
+      "Strong, unpleasant fishy smell (trimethylamine) from infected grains.",
+      "Reduced grain quality, unfit for consumption."
+    ],
+    "prevention": [
+      "Use seed treatment with fungicides like Tebuconazole.",
+      "Practice crop rotation to reduce pathogen load in the soil.",
+      "Avoid excessive irrigation, especially during flowering time."
+    ],
+    "severity": "moderate",
+    "onset": "Flowering to maturity",
+    "recommended_pesticide": "Tebuconazole (as seed treatment)",
+    "how_people_handled": [
+      "Seed treatment worked well, but irrigation control was difficult during unexpected rain."
+    ]
+  },
+  {
+    "name": "disease_powdery_mildew",
+    "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyb9wJxHN_PWcoNDcnI532gWfzfx3UckdyBg&s",
+    "images": [
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyb9wJxHN_PWcoNDcnI532gWfzfx3UckdyBg&s",
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQoEAdqkfEsPyNIz2sTmD15JHcLFlMwO5HUMg&s",
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTuyip00FD6WBkem6TfDLQ118QQ90bjeT10Yw&s"
+    ],
+    "cause": "Fungus: Blumeria graminis (thrives in cool, humid conditions)",
+    "symptoms": [
+      "Distinctive white powdery patches on the upper surface of leaves and stems.",
+      "Patches turn gray/brown over time.",
+      "Reduced ability of the plant to photosynthesize."
+    ],
+    "prevention": [
+      "Avoid dense planting to ensure good airflow.",
+      "Apply sulphur-based fungicides early on.",
+      "Select and use resistant cultivars if known to be a local issue."
+    ],
+    "severity": "low",
+    "onset": "Early spring",
+    "recommended_pesticide": "Sulfur wettable powder or Triadimefon",
+    "dosage": "2 kg/ha (Sulphur)",
+    "how_people_handled": []
+  },
+  {
+    "name": "disease_loose_smut",
+    "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQy9Gfg3q2jsjb1sSWsWIW7GRdnnr9L0p9xiQ&s",
+    "images": [
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTAyurMnkFeSpFd5-wVAUZ_kYbPWcQ1ImkpSg&s",
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQuDBMSatQIYvUxClXkCTxaiiveRG5q-K_StA&s",
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQoeO_Cg3mtZ8ADm0DXDy23qstTxd5fMLl2Iw&s"
+    ],
+    "cause": "Fungus: Ustilago tritici (carried inside seed embryo)",
+    "symptoms": [
+      "Entire wheat ear replaced by black, sooty spores.",
+      "Infected ears emerge earlier.",
+      "Spores easily blow away leaving bare stalk."
+    ],
+    "prevention": [
+      "Use disease-free certified seeds.",
+      "Hot water seed treatment.",
+      "Apply systemic seed fungicides like Carboxin."
+    ],
+    "severity": "moderate",
+    "onset": "Heading stage",
+    "recommended_pesticide": "Carboxin or Tebuconazole",
+    "how_people_handled": [
+      "Many farmers use certified seed to avoid infection.",
+      "Hot-water seed treatment significantly reduced spread in many areas."
+    ]
+  },
+  {
+    "name": "disease_byvd",
+    "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS8a1TSKYVt3b5ivcUB1Ix32ongjMbztJpKDQ&s",
+    "images": [
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS8a1TSKYVt3b5ivcUB1Ix32ongjMbztJpKDQ&s",
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSmlIhnhQEZcL09cePf2PmCVPHVga4sIrvyOA&s",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Barley_Yellow_Dwarf_Virus_in_wheat.jpg/250px-Barley_Yellow_Dwarf_Virus_in_wheat.jpg"
+    ],
+    "cause": "Virus spread by aphids",
+    "symptoms": [
+      "Yellowing and reddening of leaf tips.",
+      "Severe stunting.",
+      "Poor tillering and reduced yield."
+    ],
+    "prevention": [
+      "Control aphids early using insecticides.",
+      "Remove alternate host weeds.",
+      "Use resistant varieties."
+    ],
+    "severity": "high",
+    "onset": "Early growth stages",
+    "recommended_pesticide": "Imidacloprid (controls aphids)",
+    "treatment": [
+      "No direct cure for BYDV virus.",
+      "Control aphid carriers to prevent spread."
+    ],
+    "how_people_handled": [
+      "Farmers observed improved yields after early aphid management.",
+      "Removing wild grasses near fields reduced infection rate."
+    ]
+  },
+  // ... add other disease entries (use string keys for "name")
+];
+
 
   @override
   Widget build(BuildContext context) {
@@ -178,107 +177,136 @@ class _CropcareState extends State<Cropcare> {
                   textColor: colorScheme.onSurface,
                 ),
               ),
-              child: ExpansionTile(
-                tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                collapsedIconColor: colorScheme.onSurface.withOpacity(0.7),
-                iconColor: colorScheme.primary,
-                leading: CircleAvatar(
-                  radius: 30,
-                  backgroundColor: colorScheme.surfaceVariant,
-                  backgroundImage: d["image"] != null ? NetworkImage(d["image"]) : null,
-                  child: d["image"] == null ? Icon(Icons.agriculture_outlined, size: 30, color: colorScheme.primary) : null,
-                ),
-                title: Text(d["name"] ?? tr('unknown_disease')),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSeverityBadge(context, d["severity"]),
-                    if (d["onset"] != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: Row(
-                          children: [
-                            Icon(Icons.schedule, size: 14, color: colorScheme.onSurface.withOpacity(0.6)),
-                            const SizedBox(width: 4),
-                            Text(d["onset"], style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withOpacity(0.7))),
-                          ],
-                        ),
-                      )
-                  ],
-                ),
-                childrenPadding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-                children: [
-                  if (d["image"] != null)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            d["image"],
-                            height: 180,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            loadingBuilder: (context, child, progress) {
-                              if (progress == null) return child;
-                              return Center(child: CircularProgressIndicator(strokeWidth: 2, color: colorScheme.secondary));
-                            },
-                            errorBuilder: (_, __, ___) => Container(
-                              color: colorScheme.surfaceVariant,
-                              height: 180,
-                              child: Center(child: Icon(Icons.broken_image, size: 48, color: colorScheme.onSurface.withOpacity(0.5))),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                    ),
+              child:ExpansionTile(
+  tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+  collapsedIconColor: colorScheme.onSurface.withOpacity(0.7),
+  iconColor: colorScheme.primary,
+  leading: CircleAvatar(
+    radius: 30,
+    backgroundColor: colorScheme.surfaceVariant,
+    backgroundImage: d["image"] != null ? NetworkImage(d["image"]) : null,
+    child: d["image"] == null ? Icon(Icons.agriculture_outlined, size: 30, color: colorScheme.primary) : null,
+  ),
 
-                  InfoRow(
-                    icon: Icons.science_outlined,
-                    title: tr('causes_title'),
-                    content: d["cause"] ?? tr('not_available'),
-                  ),
-                  const SizedBox(height: 16),
+  // --- Title: support both translation keys (String) and prebuilt Widgets ---
+  title: () {
+    final nameField = d["name"];
+    if (nameField == null) return Text(tr('unknown_disease'));
+    if (nameField is String) return Text(nameField.tr());
+    if (nameField is Widget) return nameField as Widget;
+    return Text(nameField.toString());
+  }(),
 
-                  InfoRow(
-                    icon: Icons.healing_outlined,
-                    title: tr('symptoms_title'),
-                    contentWidget: SymptomsWidget(symptoms: d["symptoms"]),
-                  ),
-                  const SizedBox(height: 16),
+  subtitle: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      _buildSeverityBadge(context, d["severity"]),
+      if (d["onset"] != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 4.0),
+          child: Row(
+            children: [
+              Icon(Icons.schedule, size: 14, color: colorScheme.onSurface.withOpacity(0.6)),
+              const SizedBox(width: 4),
+              Text(d["onset"], style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withOpacity(0.7))),
+            ],
+          ),
+        )
+    ],
+  ),
 
-                  InfoRow(
-                    icon: Icons.shield_outlined,
-                    title: tr('prevention_title'),
-                    contentWidget: PreventionWidget(prevention: d["prevention"]),
-                  ),
-                  const SizedBox(height: 16),
-
-                  if (d.containsKey("treatment"))
-                    InfoRow(
-                      icon: Icons.local_hospital_outlined,
-                      title: tr('treatment_title'),
-                      contentWidget: TreatmentWidget(treatment: d["treatment"]),
-                    ),
-                  if (d.containsKey("treatment")) const SizedBox(height: 16),
-
-                  if (d["recommended_pesticide"] != null)
-                    InfoRow(
-                      icon: Icons.medical_services_outlined,
-                      title: tr('recommended_product'),
-                      content: '${d["recommended_pesticide"]}${d["dosage"] != null ? " — ${tr('dosage')}: ${d["dosage"]}" : ""}',
-                    ),
-
-                  const SizedBox(height: 20),
-
-                  _buildFarmerFeedbackSection(context, d["how_people_handled"]),
-
-                  const SizedBox(height: 16),
-
-                  _buildActionButtonsRow(context, d["name"]),
-                ],
+  childrenPadding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+  children: [
+    if (d["image"] != null)
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.network(
+              d["image"],
+              height: 180,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, progress) {
+                if (progress == null) return child;
+                return Center(child: CircularProgressIndicator(strokeWidth: 2, color: colorScheme.secondary));
+              },
+              errorBuilder: (_, __, ___) => Container(
+                color: colorScheme.surfaceVariant,
+                height: 180,
+                child: Center(child: Icon(Icons.broken_image, size: 48, color: colorScheme.onSurface.withOpacity(0.5))),
               ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+
+    InfoRow(
+      icon: Icons.science_outlined,
+      title: tr('causes_title'),
+      content: d["cause"] ?? tr('not_available'),
+    ),
+    const SizedBox(height: 16),
+
+    InfoRow(
+      icon: Icons.healing_outlined,
+      title: tr('symptoms_title'),
+      contentWidget: SymptomsWidget(symptoms: d["symptoms"]),
+    ),
+    const SizedBox(height: 16),
+
+    InfoRow(
+      icon: Icons.shield_outlined,
+      title: tr('prevention_title'),
+      contentWidget: PreventionWidget(prevention: d["prevention"]),
+    ),
+    const SizedBox(height: 16),
+
+    if (d.containsKey("treatment"))
+      InfoRow(
+        icon: Icons.local_hospital_outlined,
+        title: tr('treatment_title'),
+        contentWidget: TreatmentWidget(treatment: d["treatment"]),
+      ),
+    if (d.containsKey("treatment")) const SizedBox(height: 16),
+
+    if (d["recommended_pesticide"] != null)
+      InfoRow(
+        icon: Icons.medical_services_outlined,
+        title: tr('recommended_product'),
+        content: '${d["recommended_pesticide"]}${d["dosage"] != null ? " — ${tr('dosage')}: ${d["dosage"]}" : ""}',
+      ),
+
+    const SizedBox(height: 20),
+
+    _buildFarmerFeedbackSection(context, d["how_people_handled"]),
+
+    const SizedBox(height: 16),
+
+    // pass a translated string into action buttons helper
+    _buildActionButtonsRow(
+      context,
+      // convert d["name"] to a readable string for action dialog/buttons:
+      (() {
+        final nameField = d["name"];
+        if (nameField == null) return tr('unknown_disease');
+        if (nameField is String) return nameField.tr();
+        if (nameField is Widget) {
+          // If user accidentally stored a Text widget, extract its string if possible:
+          if (nameField is Text) {
+            final data = (nameField as Text).data;
+            return (data != null) ? data : tr('unknown_disease');
+          }
+          return tr('unknown_disease');
+        }
+        return nameField.toString();
+      })(),
+    ),
+  ],
+),
+
             ),
           );
         },

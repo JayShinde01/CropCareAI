@@ -439,7 +439,11 @@ class _LanguageScreenState extends State<LanguageScreen> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon( Icons.eco, color: AgrioDemoApp.primaryGreen, size: 24),
+             Image.asset(
+      'assets/images/app_logo.png',
+      width: 24,
+      height: 24,
+    ),
             const SizedBox(width: 8),
             Text(
               tr('app_title'),

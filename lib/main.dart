@@ -17,14 +17,15 @@ import 'screens/field_map_screen.dart';
 import 'screens/schedule_screen.dart';
 import 'screens/diagnose_screen.dart';
 
-import 'package:latlong2/latlong.dart';
-
 // Theme manager
 import 'package:demo/widgets/theme_manager.dart';
 
 // Localization
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+// Flutter framework localization delegates
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -61,7 +62,9 @@ Future<void> main() async {
       supportedLocales: const [
         Locale('en'), // English
         Locale('hi'), // Hindi
-        Locale('mr'), // Marathi (add or remove as you like)
+        Locale('mr'),
+        Locale('pa'),
+        Locale('bgc'), // Haryanvi (custom)
       ],
       path: 'assets/langs', // <-- make sure your json files are here
       fallbackLocale: const Locale('en'),
@@ -281,13 +284,33 @@ class AgrioDemoApp extends StatelessWidget {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: ThemeNotifier.notifier,
       builder: (context, mode, _) {
+        // EasyLocalization's locale (this can be 'bgc')
+        final appLocale = context.locale;
+
+        // Map custom bgc -> hi (Hindi) for framework localizations so
+        // Material widgets have available MaterialLocalizations.
+        // Change mapping to 'en' if you prefer English framework strings.
+        final Locale materialLocale = (appLocale.languageCode == 'bgc') ? const Locale('hi') : appLocale;
+
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'KisanRakshak',
-          // Localization integration
-          localizationsDelegates: context.localizationDelegates,
+
+          // Provide framework delegates + easy_localization delegates
+          localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            // easy_localization delegates provided by context
+            ...context.localizationDelegates,
+          ],
+
+          // Framework-supported locales (keep same as easy_localization supported list)
           supportedLocales: context.supportedLocales,
-          locale: context.locale,
+
+          // Use materialLocale for framework widgets to avoid missing MaterialLocalizations.
+          locale: materialLocale,
+
           // End localization integration
 
           theme: _buildLightTheme(),
