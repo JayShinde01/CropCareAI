@@ -343,7 +343,6 @@ class AgrioDemoApp extends StatelessWidget {
             '/fieldmap': (_) => const FieldMapScreen(),
             '/schedule': (_) => const ScheduleScreen(),
             '/diagnose': (_) => const DiagnoseScreen(),
-            // '/demo' kept for backward-compat — supplies a default initial point so SatelliteScreen can build
             '/demo': (_) => const NdviMapScreen(),
           },
           onUnknownRoute: (settings) => MaterialPageRoute(builder: (_) => const LanguageScreen()),
